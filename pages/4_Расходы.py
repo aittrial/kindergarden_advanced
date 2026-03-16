@@ -19,7 +19,7 @@ with tab_add:
         with col1:
             expense_date = st.date_input("Дата*", value=date.today())
             category = st.selectbox("Категория*", ["продукты", "аренда", "зарплата", "коммунальные услуги", "игрушки", "прочее"])
-            amount = st.number_input("Сумма (руб)*", min_value=0.01, value=1000.0)
+            amount = st.number_input("Сумма (nis)*", min_value=0.01, value=1000.0)
         with col2:
             description = st.text_input("Описание (название товара/услуги)*")
             comment = st.text_area("Дополнительный комментарий")
@@ -28,7 +28,7 @@ with tab_add:
         if submitted:
             if description:
                 add_expense(expense_date, category, description, amount, comment)
-                st.success(f"Расход на сумму {amount} руб. успешно зарегистрирован!")
+                st.success(f"Расход на сумму {amount} nis. успешно зарегистрирован!")
                 st.rerun()
             else:
                 st.error("Поле 'Описание' обязательно для заполнения.")
@@ -55,17 +55,17 @@ with tab_list:
             filtered_df = filtered_df[filtered_df['year_month'].isin(month_filters)]
             
         # Display sum block
-        st.metric("Итоговая сумма расходов (по фильтрам)", f"{filtered_df['amount'].sum():,.2f} руб.".replace(',', ' '))
+        st.metric("Итоговая сумма расходов (по фильтрам)", f"{filtered_df['amount'].sum():,.2f} nis.".replace(',', ' '))
             
         # Display data
         display_df = filtered_df[['id', 'date', 'category', 'description', 'amount', 'comment']].copy()
-        display_df.columns = ['ID', 'Дата', 'Категория', 'Описание', 'Сумма (руб)', 'Комментарий']
+        display_df.columns = ['ID', 'Дата', 'Категория', 'Описание', 'Сумма (nis)', 'Комментарий']
         st.dataframe(display_df, use_container_width=True, hide_index=True)
         
         st.divider()
         st.markdown("**Удаление записи**")
         with st.form("delete_expense_form"):
-            exp_options = {e['id']: f"{e['date']} | {e['category']} | {e['description']} ({e['amount']} руб.)" for e in expenses}
+            exp_options = {e['id']: f"{e['date']} | {e['category']} | {e['description']} ({e['amount']} nis.)" for e in expenses}
             del_id = st.selectbox("Выберите запись для удаления", options=list(exp_options.keys()), format_func=lambda x: exp_options[x], key="del_exp")
             del_sub = st.form_submit_button("⚠️ Удалить запись")
             if del_sub:
