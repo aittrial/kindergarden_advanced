@@ -1,6 +1,10 @@
 import streamlit as st
 import database
 import os
+from database import engine, Base
+
+# Эта строка автоматически создаст таблицы в любой подключенной базе
+Base.metadata.create_all(bind=engine)
 
 st.set_page_config(
     page_title="Kindergarten Management System",
