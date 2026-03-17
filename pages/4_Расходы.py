@@ -15,7 +15,7 @@ with tab_add:
     with st.form("expense_form", clear_on_submit=True):
         date = st.date_input("Дата", datetime.date.today())
         category = st.selectbox("Категория", ["Еда", "Транспорт", "Жилье", "Развлечения", "Связь", "Другое"])
-        amount = st.number_input("Смма", min_value=0.0, step=0.01)
+        amount = st.number_input("Сумма", min_value=0.0, step=0.01)
         description = st.text_input("Описание (на что потратили)")
         comment = st.text_area("Комментарий (необязательно)")
         
