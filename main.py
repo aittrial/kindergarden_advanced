@@ -14,12 +14,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Initialize database
-try:
-    database.init_db()
-except Exception as e:
-    st.error(f"Ошибка инициализации базы данных: {e}")
-
 st.title("Kindergarten Management System (KMS) 🏫")
 st.write("Добро пожаловать в систему учета деятельности частного детского сада!")
 
