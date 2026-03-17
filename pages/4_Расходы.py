@@ -36,21 +36,27 @@ with tab_add:
 with tab_list:
     st.subheader("Все финансовые расходы")
 
-    # 1. Загружаем данные
-    expenses = get_all_expenses()
+    # 1. Загружаем данные из базы
+    expenses_raw = get_all_expenses()
 
-    # 2. Создаем DataFrame (всегда, даже если база пуста)
-    if expenses:
-        # Преобразуем объекты SQLAlchemy в список словарей
-        data = []
-        for e in expenses:
-            # Извлекаем данные через имена колонок
+    # 2. Превращаем объекты в список словарей (это уберет ошибку TypeError)
+    expenses = []
+    if expenses_raw:
+        for e in expenses_raw:
             row = {col.name: getattr(e, col.name) for col in e.__table__.columns}
-            data.append(row)
-        df = pd.DataFrame(data)
+            expenses.append(row)
+
+    # 3. Создаем DataFrame (всегда существует, даже если пустой)
+    if expenses:
+        df = pd.DataFrame(expenses)
     else:
-        # Создаем пустой "бланк" с колонками для корректной работы фильтров
         df = pd.DataFrame(columns=['id', 'date', 'category', 'amount', 'description', 'comment'])
+
+    # 4. Обработка фильтров (теперь они не будут ломаться)
+    col1, col2 = st.columns(2)
+    with col1:
+        categories = df['category'].unique() if not df.empty else []
+        cat_filters = st.multiselect("Фильтр по категориям", options=categories)
         
 # Add basic filters
     col1, col2 = st.columns(2)
