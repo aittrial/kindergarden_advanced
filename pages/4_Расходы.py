@@ -1,106 +1,82 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
-import sys
-from pathlib import Path
+from crud import get_all_expenses, add_expense, delete_expense
+import datetime
 
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from crud import add_expense, get_all_expenses, delete_expense
+st.set_page_config(page_title="Учет расходов", layout="wide")
 
-st.set_page_config(page_title="Расходы", page_icon="💰", layout="wide")
-st.title("Учет расходов 💰")
+st.title("💰 Учет финансовых расходов")
 
-tab_list, tab_add = st.tabs(["📊 История расходов", "➕ Добавить расход"])
+# Создаем вкладки
+tab_add, tab_list = st.tabs(["➕ Добавить расход", "📋 История расходов"])
 
 with tab_add:
-    st.subheader("Новая запись о расходе")
-    with st.form("add_expense_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            expense_date = st.date_input("Дата*", value=date.today())
-            category = st.selectbox("Категория*", ["продукты", "аренда", "зарплата", "коммунальные услуги", "игрушки", "прочее"])
-            amount = st.number_input("Сумма (nis)*", min_value=0.01, value=1000.0)
-        with col2:
-            description = st.text_input("Описание (название товара/услуги)*")
-            comment = st.text_area("Дополнительный комментарий")
-            
-        submitted = st.form_submit_button("Добавить расход", type="primary")
+    st.subheader("Добавить новую запись")
+    with st.form("expense_form", clear_on_submit=True):
+        date = st.date_input("Дата", datetime.date.today())
+        category = st.selectbox("Категория", ["Еда", "Транспорт", "Жилье", "Развлечения", "Связь", "Другое"])
+        amount = st.number_input("Смма", min_value=0.0, step=0.01)
+        description = st.text_input("Описание (на что потратили)")
+        comment = st.text_area("Комментарий (необязательно)")
+        
+        submitted = st.form_submit_button("Добавить расход")
         if submitted:
-            if description:
-                add_expense(expense_date, category, description, amount, comment)
-                st.success(f"Расход на сумму {amount} nis. успешно зарегистрирован!")
+            if amount > 0:
+                add_expense(date, category, amount, description, comment)
+                st.success("Расход успешно добавлен!")
                 st.rerun()
             else:
-                st.error("Поле 'Описание' обязательно для заполнения.")
+                st.error("Сумма должна быть больше нуля")
 
 with tab_list:
     st.subheader("Все финансовые расходы")
-
+    
     # 1. Загружаем данные из базы
     expenses_raw = get_all_expenses()
 
-    # 2. Превращаем объекты в список словарей (это уберет ошибку TypeError)
-    expenses = []
+    # 2. Превращаем объекты в список словарей
+    expenses_list = []
     if expenses_raw:
         for e in expenses_raw:
             row = {col.name: getattr(e, col.name) for col in e.__table__.columns}
-            expenses.append(row)
+            expenses_list.append(row)
 
-    # 3. Создаем DataFrame (всегда существует, даже если пустой)
-    if expenses:
-        df = pd.DataFrame(expenses)
+    # 3. Создаем DataFrame
+    if expenses_list:
+        df = pd.DataFrame(expenses_list)
     else:
         df = pd.DataFrame(columns=['id', 'date', 'category', 'amount', 'description', 'comment'])
 
-    # 4. Обработка фильтров (теперь они не будут ломаться)
+    # 4. Фильтры
     col1, col2 = st.columns(2)
     with col1:
         categories = df['category'].unique() if not df.empty else []
         cat_filters = st.multiselect("Фильтр по категориям", options=categories)
-        
-# Add basic filters
-    col1, col2 = st.columns(2)
     
-    with col1:
-        # Безопасное получение списка категорий
-        if not df.empty and 'category' in df.columns:
-            categories = df['category'].unique()
-        else:
-            categories = []
-        cat_filters = st.multiselect("Фильтр по категориям", options=categories)
-
     with col2:
-        # Безопасное получение списка месяцев
         if not df.empty and 'date' in df.columns:
             df['year_month'] = df['date'].apply(lambda x: x.strftime('%Y-%m') if hasattr(x, 'strftime') else str(x)[:7])
             months = sorted(df['year_month'].unique(), reverse=True)
         else:
             months = []
         month_filters = st.multiselect("Фильтр по месяцам", options=months)
-            
-        filtered_df = df.copy()
-        if cat_filters:
-            filtered_df = filtered_df[filtered_df['category'].isin(cat_filters)]
-        if month_filters:
-            filtered_df = filtered_df[filtered_df['year_month'].isin(month_filters)]
-            
-        # Display sum block
-        st.metric("Итоговая сумма расходов (по фильтрам)", f"{filtered_df['amount'].sum():,.2f} nis.".replace(',', ' '))
-            
-        # Display data
-        display_df = filtered_df[['id', 'date', 'category', 'description', 'amount', 'comment']].copy()
-        display_df.columns = ['ID', 'Дата', 'Категория', 'Описание', 'Сумма (nis)', 'Комментарий']
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
+
+    # Применение фильтров
+    filtered_df = df.copy()
+    if cat_filters:
+        filtered_df = filtered_df[filtered_df['category'].isin(cat_filters)]
+    if month_filters:
+        filtered_df = filtered_df[filtered_df['year_month'].isin(month_filters)]
+
+    # Вывод таблицы
+    if not filtered_df.empty:
+        st.dataframe(filtered_df.drop(columns=['year_month']) if 'year_month' in filtered_df.columns else filtered_df, use_container_width=True)
         
-        st.divider()
-        st.markdown("**Удаление записи**")
-        with st.form("delete_expense_form"):
-            exp_options = {e['id']: f"{e['date']} | {e['category']} | {e['description']} ({e['amount']} nis.)" for e in expenses}
-            del_id = st.selectbox("Выберите запись для удаления", options=list(exp_options.keys()), format_func=lambda x: exp_options[x], key="del_exp")
-            del_sub = st.form_submit_button("⚠️ Удалить запись")
-            if del_sub:
-                delete_expense(del_id)
-                st.warning("Запись о расходе удалена из базы.")
-                st.rerun()
-            else:
-                st.info("История расходов пуста.")
+        # Удаление записей
+        expense_to_delete = st.selectbox("Выберите ID для удаления", filtered_df['id'])
+        if st.button("Удалить выбранную запись"):
+            delete_expense(expense_to_delete)
+            st.warning(f"Запись ID {expense_to_delete} удалена")
+            st.rerun()
+    else:
+        st.info("Данных пока нет или они не соответствуют фильтрам.")
