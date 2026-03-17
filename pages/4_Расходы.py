@@ -35,9 +35,19 @@ with tab_add:
 
 with tab_list:
     st.subheader("Все финансовые расходы")
+        
+            # 1. Загружаем данные
     expenses = get_all_expenses()
+
+            # 2. Создаем DataFrame (всегда, даже если база пуста)
     if expenses:
-        df = pd.DataFrame(expenses)
+        df = pd.DataFrame([e.__dict__ for e in expenses])
+                # Удаляем техническую колонку SQLAlchemy
+        if '_sa_instance_state' in df.columns:
+            df = df.drop(columns=['_sa_instance_state'])
+        else:
+                # Создаем пустой "бланк" с колонками для фильтров
+            df = pd.DataFrame(columns=['id', 'date', 'category', 'amount', 'description', 'comment'])
         
 # Add basic filters
     col1, col2 = st.columns(2)
