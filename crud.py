@@ -1,11 +1,17 @@
 from sqlalchemy.orm import Session
-from models import Expense  # Убедитесь, что название модели совпадает с вашим
+from models import Expense
 from database import SessionLocal
 
-def add_expense(amount, description, date):
+def add_expense(date, category, description, amount, comment):
     db = SessionLocal()
     try:
-        new_expense = Expense(amount=amount, description=description, date=date)
+        new_expense = Expense(
+            date=date,
+            category=category,
+            description=description,
+            amount=amount,
+            comment=comment
+        )
         db.add(new_expense)
         db.commit()
         db.refresh(new_expense)
@@ -13,6 +19,7 @@ def add_expense(amount, description, date):
     finally:
         db.close()
 
+# Остальные функции (get_all_expenses, delete_expense) можно оставить как есть
 def get_all_expenses():
     db = SessionLocal()
     try:
