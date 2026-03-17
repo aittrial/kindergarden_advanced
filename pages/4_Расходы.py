@@ -39,15 +39,15 @@ with tab_list:
     if expenses:
         df = pd.DataFrame(expenses)
         
-        # Add basic filters
-        col1, col2 = st.columns(2)
-       with col1:
+# Add basic filters
+    col1, col2 = st.columns(2)
+    
+    with col1:
         # Безопасное получение списка категорий
         if not df.empty and 'category' in df.columns:
             categories = df['category'].unique()
         else:
             categories = []
-            
         cat_filters = st.multiselect("Фильтр по категориям", options=categories)
 
     with col2:
