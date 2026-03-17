@@ -2,6 +2,7 @@ import streamlit as st
 import database
 import os
 from database import engine, Base
+import models
 
 # Эта строка автоматически создаст таблицы в любой подключенной базе
 Base.metadata.create_all(bind=engine)
