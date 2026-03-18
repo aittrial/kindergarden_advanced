@@ -149,3 +149,33 @@ def get_product_inventory():
         return inventory
     finally:
         db.close()
+        
+def add_product_income(product_id, date, quantity):
+    db = SessionLocal()
+    try:
+        new_trans = ProductTransaction(product_id=product_id, date=date, quantity=quantity, transaction_type='income')
+        db.add(new_trans)
+        db.commit()
+    finally:
+        db.close()
+
+def add_product_expense(product_id, date, quantity):
+    db = SessionLocal()
+    try:
+        new_trans = ProductTransaction(product_id=product_id, date=date, quantity=quantity, transaction_type='expense')
+        db.add(new_trans)
+        db.commit()
+    finally:
+        db.close()
+
+def delete_product(product_id):
+    db = SessionLocal()
+    try:
+        product = db.query(Product).filter(Product.id == product_id).first()
+        if product:
+            # Сначала удаляем транзакции продукта, потом сам продукт
+            db.query(ProductTransaction).filter(ProductTransaction.product_id == product_id).delete()
+            db.delete(product)
+            db.commit()
+    finally:
+        db.close()
