@@ -10,129 +10,60 @@ from crud import add_product, get_all_products, delete_product, add_product_inco
 st.set_page_config(page_title="Продукты", page_icon="🍎", layout="wide")
 st.title("Склад продуктов 🍎")
 
-# Define tabs
-tab_inventory, tab_income, tab_expense, tab_dict = st.tabs([
-    "📦 Текущие остатки", 
-    "📥 Приход", 
-    "📤 Списание", 
-    "📖 Справочник номенклатуры"
-])
+def to_dict_list(query_results):
+    if not query_results: return []
+    if isinstance(query_results[0], dict): return query_results
+    return [{col.name: getattr(item, col.name) for col in item.__table__.columns} for item in query_results]
 
-# INVENTORY TAB
-with tab_inventory:
+tab_inv, tab_inc, tab_exp, tab_dict = st.tabs(["📦 Остатки", "📥 Приход", "📤 Списание", "📖 Справочник"])
+
+# ТАБ 1: ОСТАТКИ
+with tab_inv:
     st.subheader("Текущие запасы")
-    inventory = get_product_inventory()
+    inventory = get_product_inventory() # Возвращает список словарей
     if inventory:
         df = pd.DataFrame(inventory)
-        display_df = df[['name', 'unit', 'current_stock', 'min_stock', 'total_income', 'total_expense', 'is_low_stock']].copy()
-        display_df.columns = ['Название', 'Ед. изм.', 'Остаток', 'Мин. запас', 'Всего приход', 'Всего расход', 'Низкий запас']
-        
-        # Color specific statuses for pandas > 1.3
-        def highlight_low_stock(row):
-            if row['Низкий запас']:
-                return ['background-color: #ffe6e6'] * len(row)
-            return [''] * len(row)
-            
-        st.dataframe(display_df.style.apply(highlight_low_stock, axis=1), use_container_width=True, hide_index=True)
-        
-        # Warnings
-        low_stock_items = [item['name'] for item in inventory if item['is_low_stock']]
-        if low_stock_items:
-            st.error(f"⚠️ Внимание! Запасы истощены у: **{', '.join(low_stock_items)}**")
-            
-        # Refresh btn
-        if st.button("🔄 Обновить склад"):
-            st.rerun()
+        df.columns = ['ID', 'Название', 'Ед. изм.', 'Остаток', 'Мин. запас']
+        st.dataframe(df, use_container_width=True, hide_index=True)
     else:
-        st.info("Склад пуст. Предварительно добавьте продукты в разделе 'Справочник'.")
+        st.info("Склад пуст.")
 
-
-# INCOME TAB
-with tab_income:
-    st.subheader("Регистрация прихода (закупка)")
-    products = get_all_products()
-    if products:
-        with st.form("income_form", clear_on_submit=True):
-            prod_options = {p['id']: f"{p['name']} ({p['unit']})" for p in products}
-            selected_prod_id = st.selectbox("Выберите продукт*", options=list(prod_options.keys()), format_func=lambda x: prod_options[x])
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                income_date = st.date_input("Дата прихода*", value=date.today())
-                quantity = st.number_input("Количество*", min_value=0.01, value=1.0)
-            with col2:
-                price = st.number_input("Цена за единицу (руб)*", min_value=0.01, value=100.0)
-                supplier = st.text_input("Поставщик")
-                
-            submitted = st.form_submit_button("📥 Зарегистрировать приход", type="primary")
-            if submitted:
-                add_product_income(selected_prod_id, income_date, quantity, price, supplier)
-                st.success(f"Приход успешно зарегистрирован! (+{quantity})")
+# ТАБ 2: ПРИХОД
+with tab_inc:
+    st.subheader("Пополнение склада")
+    prods = to_dict_list(get_all_products())
+    if prods:
+        with st.form("inc_form"):
+            p_id = st.selectbox("Продукт", options=[p['id'] for p in prods], format_func=lambda x: next(p['name'] for p in prods if p['id']==x))
+            qty = st.number_input("Количество", min_value=0.1)
+            if st.form_submit_button("Добавить"):
+                add_product_income(p_id, date.today(), qty)
+                st.success("Приход оформлен")
                 st.rerun()
-    else:
-        st.warning("Сначала добавьте продукты во вкладке 'Справочник'!")
 
-
-# EXPENSE TAB
-with tab_expense:
-    st.subheader("Списание продуктов (расход)")
-    products = get_all_products()
-    if products:
-        with st.form("expense_form", clear_on_submit=True):
-            prod_options = {p['id']: f"{p['name']} ({p['unit']})" for p in products}
-            selected_prod_id = st.selectbox("Укажите продукт*", options=list(prod_options.keys()), format_func=lambda x: prod_options[x])
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                expense_date = st.date_input("Дата расхода*", value=date.today())
-                quantity = st.number_input("Количество для списания*", min_value=0.01, value=1.0)
-            with col2:
-                purpose = st.selectbox("Назначение*", ["Завтрак", "Обед", "Полдник", "Ужин", "Списание (порча)", "Иное"])
-                
-            submitted = st.form_submit_button("📤 Списать со склада", type="primary")
-            if submitted:
-                add_product_expense(selected_prod_id, expense_date, quantity, purpose)
-                st.success(f"Продукт успешно списан! (-{quantity})")
+# ТАБ 3: СПИСАНИЕ
+with tab_exp:
+    st.subheader("Расход продуктов")
+    prods = to_dict_list(get_all_products())
+    if prods:
+        with st.form("exp_form"):
+            p_id = st.selectbox("Продукт ", options=[p['id'] for p in prods], format_func=lambda x: next(p['name'] for p in prods if p['id']==x))
+            qty = st.number_input("Количество ", min_value=0.1)
+            if st.form_submit_button("Списать"):
+                add_product_expense(p_id, date.today(), qty)
+                st.success("Списано")
                 st.rerun()
-    else:
-        st.warning("Сначала добавьте продукты во вкладке 'Справочник'!")
 
-
-# DICTIONARY TAB
+# ТАБ 4: СПРАВОЧНИК
 with tab_dict:
-    st.subheader("Добавление новой номенклатуры")
-    with st.form("add_product_form", clear_on_submit=True):
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            name = st.text_input("Название продукта*")
-        with col2:
-            unit = st.selectbox("Единица измерения*", ["кг", "литры", "штуки", "упаковки", "банки"])
-            
-        min_stock = st.number_input("Мин. остаток (для оповещений)", min_value=0.0, value=1.0)
-            
-        submitted = st.form_submit_button("➕ Добавить в базу")
-        if submitted and name:
-            add_product(name, unit, min_stock)
-            st.success(f"Продукт '{name}' добавлен в справочник!")
+    st.subheader("Номенклатура")
+    with st.form("add_prod_form"):
+        n = st.text_input("Название")
+        u = st.selectbox("Ед. изм.", ["кг", "литры", "штуки"])
+        if st.form_submit_button("Добавить в справочник"):
+            add_product(n, u, 1.0)
             st.rerun()
-            
-    products = get_all_products()
-    if products:
-        st.divider()
-        st.markdown("**Существующая номенклатура:**")
-        df = pd.DataFrame(products)
-        display_df = df[['id', 'name', 'unit', 'min_stock']]
-        display_df.columns = ['ID', 'Название', 'Ед. изм.', 'Мин. остаток']
-        st.dataframe(display_df, use_container_width=True, hide_index=True)
-        
-        st.markdown("**Удаление продукта**")
-        st.caption("Удаление продукта приведет к удалению всей истории его приходов и расходов (каскадное удаление).")
-        
-        with st.form("delete_product_form"):
-            prod_options = {p['id']: f"{p['id']} - {p['name']}" for p in products}
-            del_id = st.selectbox("Выберите продукт", options=list(prod_options.keys()), format_func=lambda x: prod_options[x], key="del_prod")
-            del_submitted = st.form_submit_button("⚠️ Удалить продукт")
-            if del_submitted:
-                delete_product(del_id)
-                st.warning("Продукт и связанные записи удалены из базы.")
-                st.rerun()
+    
+    all_p = to_dict_list(get_all_products())
+    if all_p:
+        st.dataframe(pd.DataFrame(all_p)[['id', 'name', 'unit']], use_container_width=True)
