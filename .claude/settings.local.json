@@ -6,7 +6,8 @@
       "Bash(streamlit run:*)",
       "Bash(taskkill /F /IM streamlit.exe)",
       "Bash(taskkill /F /IM python.exe /FI \"WINDOWTITLE eq streamlit*\")",
-      "Bash(gh auth:*)"
+      "Bash(gh auth:*)",
+      "Bash(git push:*)"
     ]
   }
 }
