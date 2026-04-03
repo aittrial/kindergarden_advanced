@@ -6,8 +6,11 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from crud import get_all_children, add_attendance, get_attendance_by_date, get_all_attendance
+from auth_guard import require_login, render_sidebar_user
 
 st.set_page_config(page_title="Посещаемость", layout="wide")
+require_login()
+render_sidebar_user()
 st.title("Учет посещаемости 📅")
 
 def to_dict_list(query_results):

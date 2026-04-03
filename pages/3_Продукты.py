@@ -6,8 +6,11 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from crud import add_product, get_all_products, delete_product, add_product_income, add_product_expense, get_product_inventory
+from auth_guard import require_login, render_sidebar_user
 
 st.set_page_config(page_title="Продукты", page_icon="🍎", layout="wide")
+require_login()
+render_sidebar_user()
 st.title("Склад продуктов 🍎")
 
 def to_dict_list(query_results):

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import Expense, Child, Attendance, Product, ProductTransaction
+from models import Expense, Child, Attendance, Product, ProductTransaction, User
 from database import SessionLocal
 from sqlalchemy import func
 
@@ -177,5 +177,57 @@ def delete_product(product_id):
             db.query(ProductTransaction).filter(ProductTransaction.product_id == product_id).delete()
             db.delete(product)
             db.commit()
+    finally:
+        db.close()
+
+
+# --- ПОЛЬЗОВАТЕЛИ / АУТЕНТИФИКАЦИЯ ---
+def get_user_by_email(email: str):
+    db = SessionLocal()
+    try:
+        return db.query(User).filter(User.email == email).first()
+    finally:
+        db.close()
+
+
+def create_user(email: str, password_hash: str, role: str):
+    db = SessionLocal()
+    try:
+        user = User(email=email, password_hash=password_hash, role=role)
+        db.add(user)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        return False
+    finally:
+        db.close()
+
+
+def get_all_admins():
+    db = SessionLocal()
+    try:
+        return db.query(User).filter(User.role == 'admin').all()
+    finally:
+        db.close()
+
+
+def delete_user_by_email(email: str):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            db.delete(user)
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+
+
+def superadmin_exists():
+    db = SessionLocal()
+    try:
+        return db.query(User).filter(User.role == 'superadmin').first() is not None
     finally:
         db.close()

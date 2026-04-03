@@ -8,8 +8,11 @@ from pathlib import Path
 # Добавляем путь для импортов
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from crud import get_all_children, get_all_attendance, get_product_inventory, get_all_expenses
+from auth_guard import require_login, render_sidebar_user
 
 st.set_page_config(page_title="Отчеты", page_icon="📊", layout="wide")
+require_login()
+render_sidebar_user()
 st.title("Отчеты и аналитика 📊")
 
 # Функция-конвертер для SQLAlchemy объектов

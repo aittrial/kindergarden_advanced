@@ -2,8 +2,15 @@ import streamlit as st
 import pandas as pd
 from crud import get_all_expenses, add_expense, delete_expense
 import datetime
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from auth_guard import require_login, render_sidebar_user
 
 st.set_page_config(page_title="Учет расходов", layout="wide")
+require_login()
+render_sidebar_user()
 
 st.title("💰 Учет финансовых расходов")
 

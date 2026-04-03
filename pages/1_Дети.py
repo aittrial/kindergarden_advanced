@@ -7,8 +7,11 @@ from pathlib import Path
 # Добавляем путь для импортов
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from crud import add_child, get_all_children, update_child, delete_child
+from auth_guard import require_login, render_sidebar_user
 
 st.set_page_config(page_title="Дети", page_icon="👦", layout="wide")
+require_login()
+render_sidebar_user()
 st.title("Учет детей 👦")
 
 # Функция-конвертер (убирает ошибки PostgreSQL)
