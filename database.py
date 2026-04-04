@@ -1,10 +1,11 @@
 import os
+import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Пытаемся взять URL из переменных Railway
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# Берём URL из переменных окружения (Railway) или из st.secrets (Streamlit Cloud)
+DATABASE_URL = os.environ.get("DATABASE_URL") or st.secrets.get("DATABASE_URL")
 
 # Логика: если переменной нет (например, локально), используем SQLite
 if not DATABASE_URL:
