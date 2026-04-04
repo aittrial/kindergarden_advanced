@@ -9,6 +9,8 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False)  # 'superadmin' or 'admin'
+    language = Column(String, default="ru", server_default="ru")
+    currency = Column(String, default="ILS", server_default="ILS")
 
 
 class Expense(Base):

@@ -3,9 +3,9 @@ import database
 from database import engine, Base
 import models
 from auth import hash_password, verify_password
-from crud import get_user_by_email, create_user, superadmin_exists
+from crud import get_user_by_email, create_user, superadmin_exists, update_user_preferences
+from i18n import t, CURRENCIES
 
-# Create all tables (including users)
 Base.metadata.create_all(bind=engine)
 
 st.set_page_config(
@@ -14,9 +14,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Session state init ---
 if "user" not in st.session_state:
-    st.session_state.user = None  # None = not logged in
+    st.session_state.user = None
+if "lang" not in st.session_state:
+    st.session_state.lang = "ru"
+if "currency" not in st.session_state:
+    st.session_state.currency = "ILS"
 
 
 def logout():
@@ -25,95 +28,147 @@ def logout():
 
 
 def login_page():
-    st.title("Kindergarten Management System 🏫")
+    col_lang, col_cur, _ = st.columns([1, 1, 4])
+    with col_lang:
+        lang = st.selectbox(
+            "🌐",
+            options=["ru", "en"],
+            format_func=lambda x: "Русский" if x == "ru" else "English",
+            index=0 if st.session_state.lang == "ru" else 1,
+            key="pre_login_lang",
+            label_visibility="collapsed"
+        )
+        if lang != st.session_state.lang:
+            st.session_state.lang = lang
+            st.rerun()
+    with col_cur:
+        cur_key = "name_ru" if st.session_state.lang == "ru" else "name_en"
+        currency = st.selectbox(
+            "💰",
+            options=list(CURRENCIES.keys()),
+            format_func=lambda x: CURRENCIES[x][cur_key],
+            index=list(CURRENCIES.keys()).index(st.session_state.currency),
+            key="pre_login_currency",
+            label_visibility="collapsed"
+        )
+        if currency != st.session_state.currency:
+            st.session_state.currency = currency
+            st.rerun()
+
+    st.title(f"{t('app_title')} 🏫")
 
     no_superadmin = not superadmin_exists()
-
     if no_superadmin:
-        tab_login, tab_signup = st.tabs(["🔑 Войти", "🆕 Регистрация Superadmin"])
+        tab_login, tab_signup = st.tabs([t("login_tab"), t("register_tab")])
     else:
-        (tab_login,) = st.tabs(["🔑 Войти"])
+        (tab_login,) = st.tabs([t("login_tab")])
         tab_signup = None
 
     with tab_login:
-        st.subheader("Вход в систему")
+        st.subheader(t("login_title"))
         with st.form("login_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Пароль", type="password")
-            submitted = st.form_submit_button("Войти", type="primary")
+            email = st.text_input(t("email"))
+            password = st.text_input(t("password"), type="password")
+            submitted = st.form_submit_button(t("sign_in"), type="primary")
 
         if submitted:
             if not email or not password:
-                st.error("Введите email и пароль")
+                st.error(t("fill_credentials"))
             else:
                 user = get_user_by_email(email.strip().lower())
                 if user and verify_password(password, user.password_hash):
                     st.session_state.user = {"email": user.email, "role": user.role}
+                    st.session_state.lang = user.language or "ru"
+                    st.session_state.currency = user.currency or "ILS"
                     st.rerun()
                 else:
-                    st.error("Неверный email или пароль")
+                    st.error(t("invalid_credentials"))
 
     if tab_signup is not None:
         with tab_signup:
-            st.subheader("Создать аккаунт Superadmin")
-            st.info("Superadmin создаётся только один раз — пока ни одного нет в системе.")
+            st.subheader(t("create_superadmin_title"))
+            st.info(t("superadmin_info"))
             with st.form("signup_form"):
-                email = st.text_input("Email Superadmin")
-                password = st.text_input("Пароль", type="password")
-                password2 = st.text_input("Повторите пароль", type="password")
-                submitted2 = st.form_submit_button("Создать Superadmin", type="primary")
+                email = st.text_input(f"Email Superadmin")
+                password = st.text_input(t("password"), type="password")
+                password2 = st.text_input(t("confirm_password"), type="password")
+                submitted2 = st.form_submit_button(t("create_superadmin_btn"), type="primary")
 
             if submitted2:
                 if not email or not password:
-                    st.error("Заполните все поля")
+                    st.error(t("fill_all_fields"))
                 elif password != password2:
-                    st.error("Пароли не совпадают")
+                    st.error(t("passwords_mismatch"))
                 elif len(password) < 6:
-                    st.error("Пароль должен быть минимум 6 символов")
+                    st.error(t("password_too_short"))
                 else:
                     ok = create_user(email.strip().lower(), hash_password(password), "superadmin")
                     if ok:
-                        st.success("Superadmin создан! Войдите в систему.")
+                        st.success(t("superadmin_created"))
                     else:
-                        st.error("Ошибка: такой email уже существует")
+                        st.error(t("email_exists"))
 
 
 def main_page():
     user = st.session_state.user
-    st.title("Kindergarten Management System (KMS) 🏫")
+    st.title(f"{t('app_title')} 🏫")
 
     with st.sidebar:
         st.markdown(f"**{user['email']}**")
-        st.caption(f"Роль: {'Superadmin' if user['role'] == 'superadmin' else 'Admin'}")
+        role_label = t("superadmin") if user["role"] == "superadmin" else t("admin")
+        st.caption(f"{t('role')}: {role_label}")
         st.divider()
-        if st.button("Выйти", use_container_width=True):
+
+        st.markdown(f"**{t('settings_header')}**")
+        lang_options = ["ru", "en"]
+        cur_lang = st.session_state.get("lang", "ru")
+        new_lang = st.selectbox(
+            t("language"),
+            options=lang_options,
+            format_func=lambda x: "Русский" if x == "ru" else "English",
+            index=lang_options.index(cur_lang) if cur_lang in lang_options else 0,
+            key="main_lang"
+        )
+        cur_keys = list(CURRENCIES.keys())
+        cur_currency = st.session_state.get("currency", "ILS")
+        cur_key = "name_ru" if cur_lang == "ru" else "name_en"
+        new_currency = st.selectbox(
+            t("currency"),
+            options=cur_keys,
+            format_func=lambda x: CURRENCIES[x][cur_key],
+            index=cur_keys.index(cur_currency) if cur_currency in cur_keys else 0,
+            key="main_currency"
+        )
+        if st.button(t("save"), key="save_prefs_main", use_container_width=True):
+            st.session_state.lang = new_lang
+            st.session_state.currency = new_currency
+            update_user_preferences(user["email"], new_lang, new_currency)
+            st.rerun()
+
+        st.divider()
+        if st.button(t("sign_out"), use_container_width=True):
             logout()
 
-    st.write("Добро пожаловать в систему учета деятельности частного детского сада!")
-    st.info("Используйте меню слева для навигации по разделам:")
+    st.write(t("welcome"))
+    st.info(t("use_menu"))
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("""
-        ### Основные разделы:
-        - 👦 **Дети** – учет воспитанников, добавление и редактирование данных
-        - 📅 **Посещаемость** – журнал присутствия детей
-        """)
+        st.markdown(t("main_sections"))
+        st.markdown(t("children_desc"))
+        st.markdown(t("attendance_desc"))
     with col2:
-        st.markdown("""
-        ### Склад и Финансы:
-        - 🍎 **Продукты** – складской учет продуктов питания
-        - 💰 **Расходы** – учет финансовых затрат
-        - 📊 **Отчеты** – аналитика и выгрузка данных в Excel
-        """)
-        if user['role'] == 'superadmin':
-            st.markdown("- 👤 **Управление админами** – добавление и удаление администраторов")
+        st.markdown(t("warehouse_finance"))
+        st.markdown(t("products_desc"))
+        st.markdown(t("expenses_desc"))
+        st.markdown(t("reports_desc"))
+        if user["role"] == "superadmin":
+            st.markdown(t("admins_desc"))
 
     st.divider()
-    st.caption("Разработано для эффективного управления частным детским садом.")
+    st.caption(t("footer"))
 
 
-# --- Router ---
 if st.session_state.user is None:
     login_page()
 else:

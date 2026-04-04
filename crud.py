@@ -231,3 +231,17 @@ def superadmin_exists():
         return db.query(User).filter(User.role == 'superadmin').first() is not None
     finally:
         db.close()
+
+
+def update_user_preferences(email: str, language: str, currency: str):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.language = language
+            user.currency = currency
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
