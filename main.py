@@ -1,12 +1,13 @@
 import streamlit as st
 import database
-from database import engine, Base
+from database import engine, Base, run_migrations
 import models
 from auth import hash_password, verify_password
 from crud import get_user_by_email, create_user, superadmin_exists, update_user_preferences
 from i18n import t, CURRENCIES
 
 Base.metadata.create_all(bind=engine)
+run_migrations()
 
 st.set_page_config(
     page_title="Kindergarten Management System",

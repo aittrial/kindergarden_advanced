@@ -25,3 +25,24 @@ else:
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def run_migrations():
+    """Add new columns to existing tables if they don't exist yet."""
+    with engine.connect() as conn:
+        # Check and add language column to users
+        try:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE users ADD COLUMN language VARCHAR DEFAULT 'ru'"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        # Check and add currency column to users
+        try:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE users ADD COLUMN currency VARCHAR DEFAULT 'ILS'"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
