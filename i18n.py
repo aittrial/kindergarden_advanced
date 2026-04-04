@@ -42,6 +42,13 @@ TRANSLATIONS = {
         "reports_desc": "📊 **Отчеты** – аналитика и выгрузка данных в Excel",
         "admins_desc": "👤 **Управление админами** – добавление и удаление администраторов",
         "footer": "Разработано для эффективного управления частным детским садом.",
+        # Navigation
+        "nav_children": "Дети",
+        "nav_attendance": "Посещаемость",
+        "nav_products": "Продукты",
+        "nav_expenses": "Расходы",
+        "nav_reports": "Отчеты",
+        "nav_admins": "Админы",
         # Sidebar settings
         "settings_header": "⚙️ Настройки",
         "preferences_saved": "Настройки сохранены",
@@ -196,6 +203,13 @@ TRANSLATIONS = {
         "reports_desc": "📊 **Reports** – analytics and Excel export",
         "admins_desc": "👤 **Admin Management** – add and remove administrators",
         "footer": "Developed for effective management of a private kindergarten.",
+        # Navigation
+        "nav_children": "Children",
+        "nav_attendance": "Attendance",
+        "nav_products": "Products",
+        "nav_expenses": "Expenses",
+        "nav_reports": "Reports",
+        "nav_admins": "Admins",
         # Sidebar settings
         "settings_header": "⚙️ Settings",
         "preferences_saved": "Settings saved",

@@ -8,7 +8,6 @@ from auth import hash_password
 from crud import get_all_admins, create_user, delete_user_by_email, get_user_by_email
 from i18n import t
 
-st.set_page_config(page_title="Admins", page_icon="👤", layout="wide")
 require_login()
 render_sidebar_user()
 

@@ -9,7 +9,6 @@ from crud import add_product, get_all_products, delete_product, add_product_inco
 from auth_guard import require_login, render_sidebar_user
 from i18n import t, PRODUCT_UNITS, PRODUCT_UNIT_DISPLAY, unit_display, get_lang
 
-st.set_page_config(page_title="Products", page_icon="🍎", layout="wide")
 require_login()
 render_sidebar_user()
 st.title(t("products_title"))

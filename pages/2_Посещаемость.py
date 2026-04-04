@@ -9,7 +9,6 @@ from crud import get_all_children, add_attendance, get_attendance_by_date, get_a
 from auth_guard import require_login, render_sidebar_user
 from i18n import t, ATTENDANCE_STATUSES, ATTENDANCE_DISPLAY, att_display, get_lang
 
-st.set_page_config(page_title="Attendance", layout="wide")
 require_login()
 render_sidebar_user()
 st.title(t("attendance_title"))

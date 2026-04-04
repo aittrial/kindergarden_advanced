@@ -9,7 +9,6 @@ from crud import get_all_children, get_all_attendance, get_product_inventory, ge
 from auth_guard import require_login, render_sidebar_user
 from i18n import t, format_amount, att_display, child_status_display, expense_cat_display, unit_display
 
-st.set_page_config(page_title="Reports", page_icon="📊", layout="wide")
 require_login()
 render_sidebar_user()
 st.title(t("reports_title"))

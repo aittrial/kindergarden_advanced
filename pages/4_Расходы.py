@@ -9,7 +9,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from auth_guard import require_login, render_sidebar_user
 from i18n import t, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_DISPLAY, expense_cat_display, format_amount, get_lang
 
-st.set_page_config(page_title="Expenses", layout="wide")
 require_login()
 render_sidebar_user()
 

@@ -28,6 +28,44 @@ def logout():
     st.rerun()
 
 
+def render_settings_sidebar(user):
+    with st.sidebar:
+        st.markdown(f"**{user['email']}**")
+        role_label = t("superadmin") if user["role"] == "superadmin" else t("admin")
+        st.caption(f"{t('role')}: {role_label}")
+        st.divider()
+
+        st.markdown(f"**{t('settings_header')}**")
+        lang_options = ["ru", "en"]
+        cur_lang = st.session_state.get("lang", "ru")
+        new_lang = st.selectbox(
+            t("language"),
+            options=lang_options,
+            format_func=lambda x: "Русский" if x == "ru" else "English",
+            index=lang_options.index(cur_lang) if cur_lang in lang_options else 0,
+            key="main_lang"
+        )
+        cur_keys = list(CURRENCIES.keys())
+        cur_currency = st.session_state.get("currency", "ILS")
+        cur_key = "name_ru" if cur_lang == "ru" else "name_en"
+        new_currency = st.selectbox(
+            t("currency"),
+            options=cur_keys,
+            format_func=lambda x: CURRENCIES[x][cur_key],
+            index=cur_keys.index(cur_currency) if cur_currency in cur_keys else 0,
+            key="main_currency"
+        )
+        if st.button(t("save"), key="save_prefs_main", use_container_width=True):
+            st.session_state.lang = new_lang
+            st.session_state.currency = new_currency
+            update_user_preferences(user["email"], new_lang, new_currency)
+            st.rerun()
+
+        st.divider()
+        if st.button(t("sign_out"), use_container_width=True):
+            logout()
+
+
 def login_page():
     col_lang, col_cur, _ = st.columns([1, 1, 4])
     with col_lang:
@@ -90,7 +128,7 @@ def login_page():
             st.subheader(t("create_superadmin_title"))
             st.info(t("superadmin_info"))
             with st.form("signup_form"):
-                email = st.text_input(f"Email Superadmin")
+                email = st.text_input("Email Superadmin")
                 password = st.text_input(t("password"), type="password")
                 password2 = st.text_input(t("confirm_password"), type="password")
                 submitted2 = st.form_submit_button(t("create_superadmin_btn"), type="primary")
@@ -112,44 +150,9 @@ def login_page():
 
 def main_page():
     user = st.session_state.user
+    render_settings_sidebar(user)
+
     st.title(f"{t('app_title')} 🏫")
-
-    with st.sidebar:
-        st.markdown(f"**{user['email']}**")
-        role_label = t("superadmin") if user["role"] == "superadmin" else t("admin")
-        st.caption(f"{t('role')}: {role_label}")
-        st.divider()
-
-        st.markdown(f"**{t('settings_header')}**")
-        lang_options = ["ru", "en"]
-        cur_lang = st.session_state.get("lang", "ru")
-        new_lang = st.selectbox(
-            t("language"),
-            options=lang_options,
-            format_func=lambda x: "Русский" if x == "ru" else "English",
-            index=lang_options.index(cur_lang) if cur_lang in lang_options else 0,
-            key="main_lang"
-        )
-        cur_keys = list(CURRENCIES.keys())
-        cur_currency = st.session_state.get("currency", "ILS")
-        cur_key = "name_ru" if cur_lang == "ru" else "name_en"
-        new_currency = st.selectbox(
-            t("currency"),
-            options=cur_keys,
-            format_func=lambda x: CURRENCIES[x][cur_key],
-            index=cur_keys.index(cur_currency) if cur_currency in cur_keys else 0,
-            key="main_currency"
-        )
-        if st.button(t("save"), key="save_prefs_main", use_container_width=True):
-            st.session_state.lang = new_lang
-            st.session_state.currency = new_currency
-            update_user_preferences(user["email"], new_lang, new_currency)
-            st.rerun()
-
-        st.divider()
-        if st.button(t("sign_out"), use_container_width=True):
-            logout()
-
     st.write(t("welcome"))
     st.info(t("use_menu"))
 
@@ -170,7 +173,23 @@ def main_page():
     st.caption(t("footer"))
 
 
-if st.session_state.user is None:
-    login_page()
+# --- Build navigation with translated page titles ---
+if st.session_state.user is not None:
+    user = st.session_state.user
+    home_page = st.Page(main_page, title=t("app_title"), icon="🏫", default=True)
+    pages = [
+        home_page,
+        st.Page("pages/1_Дети.py", title=t("nav_children"), icon="👦"),
+        st.Page("pages/2_Посещаемость.py", title=t("nav_attendance"), icon="📅"),
+        st.Page("pages/3_Продукты.py", title=t("nav_products"), icon="🍎"),
+        st.Page("pages/4_Расходы.py", title=t("nav_expenses"), icon="💰"),
+        st.Page("pages/5_Отчеты.py", title=t("nav_reports"), icon="📊"),
+    ]
+    if user["role"] == "superadmin":
+        pages.append(st.Page("pages/6_Админы.py", title=t("nav_admins"), icon="👤"))
+
+    pg = st.navigation(pages)
+    pg.run()
 else:
-    main_page()
+    # No navigation when not logged in
+    st.navigation([st.Page(login_page, title="Login", icon="🔑", default=True)]).run()

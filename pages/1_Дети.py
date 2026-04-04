@@ -9,7 +9,6 @@ from crud import add_child, get_all_children, update_child, delete_child
 from auth_guard import require_login, render_sidebar_user
 from i18n import t, CHILD_STATUSES, CHILD_STATUS_DISPLAY, child_status_display, get_lang
 
-st.set_page_config(page_title="Children", page_icon="👦", layout="wide")
 require_login()
 render_sidebar_user()
 st.title(t("children_title"))
