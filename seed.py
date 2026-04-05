@@ -21,16 +21,20 @@ Base.metadata.create_all(bind=engine)
 db = SessionLocal()
 
 # ── 2. RESTORE SUPERADMIN ────────────────────────────────────────────────────
+import os
+sa_email = os.environ.get("SEED_EMAIL", "admin@kms.com")
+sa_password = os.environ.get("SEED_PASSWORD", "admin123")
+
 superadmin = User(
-    email="admin@kms.com",
-    password_hash=hash_password("admin123"),
+    email=sa_email,
+    password_hash=hash_password(sa_password),
     role="superadmin",
     language="ru",
     currency="ILS"
 )
 db.add(superadmin)
 db.commit()
-print("✓ Superadmin created: admin@kms.com / admin123")
+print(f"✓ Superadmin created: {sa_email} / {sa_password}")
 
 # ── 3. THREE KINDERGARTENS ────────────────────────────────────────────────────
 kgs_data = [

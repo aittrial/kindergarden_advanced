@@ -16,6 +16,38 @@ if not is_superadmin():
 
 st.title(t("kindergartens_title"))
 
+# ── SEED BUTTON (one-time setup) ─────────────────────────────────────────────
+with st.expander("🛠 Инициализация базы данных", expanded=False):
+    st.warning("**Внимание:** сбросит ВСЕ данные и создаст тестовые садики!")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        new_email = st.text_input("Email суперадмина после сброса", value="admin@kms.com")
+        new_pass = st.text_input("Пароль", value="admin123", type="password")
+    with col2:
+        st.write("")
+        st.write("")
+        run_seed = st.button("🗑 Сбросить и заполнить", type="secondary")
+    if run_seed:
+        import importlib.util
+        from pathlib import Path as _Path
+        spec = importlib.util.spec_from_file_location(
+            "seed", _Path(__file__).resolve().parent.parent / "seed.py")
+        # Override credentials before running seed
+        import builtins
+        _orig_input = builtins.__dict__.get("input")
+        # Patch seed constants via environment
+        import os
+        os.environ["SEED_EMAIL"] = new_email
+        os.environ["SEED_PASSWORD"] = new_pass
+        mod = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(mod)
+            st.success("✅ База данных инициализирована! Войдите заново.")
+            st.session_state.user = None
+            st.rerun()
+        except Exception as e:
+            st.error(f"Ошибка: {e}")
+
 tab_list, tab_add = st.tabs([t("kindergartens_list_tab"), t("add_kindergarten_tab")])
 
 with tab_list:
