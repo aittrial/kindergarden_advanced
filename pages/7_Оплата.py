@@ -133,6 +133,7 @@ with tab_debtors:
                 t("parent_name"): d.parent_name,
                 t("parent_phone"): d.parent_phone,
                 t("monthly_fee_label"): format_amount(d.monthly_fee or 0),
+                t("debt_amount"): format_amount(getattr(d, "_debt_amount", d.monthly_fee or 0)),
             })
         st.dataframe(pd.DataFrame(data), use_container_width=True, hide_index=True)
     else:

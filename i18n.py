@@ -79,6 +79,7 @@ TRANSLATIONS = {
         "no_debtors": "Все оплатили! ✅",
         "debtor_month": "Проверка за месяц",
         # Alerts
+        "debt_amount": "Остаток долга",
         "alert_debtors": "⚠️ Должников за текущий месяц: {n}",
         "alert_low_stock": "⚠️ Продуктов с низким остатком: {n}",
         # Sidebar settings
@@ -272,6 +273,7 @@ TRANSLATIONS = {
         "no_debtors": "Everyone paid! ✅",
         "debtor_month": "Check for month",
         # Alerts
+        "debt_amount": "Remaining debt",
         "alert_debtors": "⚠️ Debtors this month: {n}",
         "alert_low_stock": "⚠️ Low stock products: {n}",
         # Sidebar settings

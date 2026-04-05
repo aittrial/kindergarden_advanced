@@ -298,17 +298,23 @@ def delete_payment(payment_id: int):
 
 
 def get_debtors(current_year: int, current_month: int):
-    """Return active children who have no payment for the current month."""
+    """Return active children whose total payments for the month are less than monthly_fee."""
     db = SessionLocal()
     try:
         active = db.query(Child).filter(Child.status == "активный").all()
-        paid_ids = {
-            p.child_id for p in db.query(Payment).filter(
+        debtors = []
+        for child in active:
+            if not child.monthly_fee or child.monthly_fee <= 0:
+                continue  # fee not set — skip
+            total_paid = db.query(func.sum(Payment.amount)).filter(
+                Payment.child_id == child.id,
                 Payment.year == current_year,
                 Payment.month == current_month
-            ).all()
-        }
-        return [c for c in active if c.id not in paid_ids]
+            ).scalar() or 0
+            if total_paid < child.monthly_fee:
+                child._debt_amount = child.monthly_fee - total_paid
+                debtors.append(child)
+        return debtors
     finally:
         db.close()
 
