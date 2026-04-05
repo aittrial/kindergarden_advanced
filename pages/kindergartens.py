@@ -28,15 +28,10 @@ with st.expander("🛠 Инициализация базы данных", expand
         st.write("")
         run_seed = st.button("🗑 Сбросить и заполнить", type="secondary")
     if run_seed:
-        import importlib.util
+        import importlib.util, os
         from pathlib import Path as _Path
         spec = importlib.util.spec_from_file_location(
             "seed", _Path(__file__).resolve().parent.parent / "seed.py")
-        # Override credentials before running seed
-        import builtins
-        _orig_input = builtins.__dict__.get("input")
-        # Patch seed constants via environment
-        import os
         os.environ["SEED_EMAIL"] = new_email
         os.environ["SEED_PASSWORD"] = new_pass
         mod = importlib.util.module_from_spec(spec)

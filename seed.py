@@ -2,8 +2,12 @@
 Run once to populate the database with 3 kindergartens and sample data.
 Keeps existing superadmin, clears everything else.
 """
+import os
 import sys
+import random
 from pathlib import Path
+from datetime import date, timedelta
+
 sys.path.append(str(Path(__file__).resolve().parent))
 
 from database import engine, Base, SessionLocal
@@ -11,8 +15,6 @@ import models  # noqa: F401 — registers all models
 from models import (Kindergarten, User, Child, Attendance,
                     Product, ProductTransaction, Expense, Payment)
 from auth import hash_password
-from datetime import date, timedelta
-import random
 
 # ── 1. DROP & RECREATE ALL TABLES ────────────────────────────────────────────
 Base.metadata.drop_all(bind=engine)

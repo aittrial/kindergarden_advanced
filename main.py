@@ -56,7 +56,7 @@ def render_settings_sidebar(user):
             t("language"), options=lang_options,
             format_func=lambda x: "Русский" if x == "ru" else "English",
             index=lang_options.index(cur_lang) if cur_lang in lang_options else 0,
-            key="main_lang"
+            key="sidebar_lang"
         )
         cur_keys = list(CURRENCIES.keys())
         cur_currency = st.session_state.get("currency", "ILS")
@@ -65,16 +65,16 @@ def render_settings_sidebar(user):
             t("currency"), options=cur_keys,
             format_func=lambda x: CURRENCIES[x][cur_key],
             index=cur_keys.index(cur_currency) if cur_currency in cur_keys else 0,
-            key="main_currency"
+            key="sidebar_currency"
         )
-        if st.button(t("save"), key="save_prefs_main", use_container_width=True):
+        if st.button(t("save"), key="save_prefs", use_container_width=True):
             st.session_state.lang = new_lang
             st.session_state.currency = new_currency
             update_user_preferences(user["email"], new_lang, new_currency)
             st.rerun()
 
         st.divider()
-        if st.button(t("sign_out"), use_container_width=True):
+        if st.button(t("sign_out"), use_container_width=True, key="main_logout"):
             logout()
 
 
