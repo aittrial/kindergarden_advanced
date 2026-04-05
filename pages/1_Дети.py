@@ -5,13 +5,14 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from crud import add_child, get_all_children, update_child
-from auth_guard import require_login, render_sidebar_user
+from crud import add_child, get_all_children, update_child, update_child_group
+from auth_guard import require_login, render_sidebar_user, get_active_kindergarten_id
 from i18n import (t, CHILD_STATUSES, CHILD_STATUS_DISPLAY, child_status_display,
                   CHILD_GROUPS, CHILD_GROUP_DISPLAY, group_display, get_lang)
 
 require_login()
 render_sidebar_user()
+kg_id = get_active_kindergarten_id()
 st.title(t("children_title"))
 
 
@@ -50,23 +51,16 @@ with tab_add:
 
         col3, col4 = st.columns(2)
         with col3:
-            selected_status_display = st.selectbox(t("status"), options=status_options_display)
-            status_value = CHILD_STATUSES[status_options_display.index(selected_status_display)]
+            sel_status = st.selectbox(t("status"), options=status_options_display)
+            status_value = CHILD_STATUSES[status_options_display.index(sel_status)]
         with col4:
-            selected_group_display = st.selectbox(t("group_label"), options=group_options_display)
-            group_value = CHILD_GROUPS[group_options_display.index(selected_group_display)]
+            sel_group = st.selectbox(t("group_label"), options=group_options_display)
+            group_value = CHILD_GROUPS[group_options_display.index(sel_group)]
 
         if st.form_submit_button(t("add_btn"), type="primary"):
             if first_name and last_name and parent_name:
-                add_child(first_name, last_name, birth_date, parent_name,
-                          parent_phone, enrollment_date, status_value)
-                # update group separately since add_child doesn't have group param yet
-                from crud import get_all_children, update_child_group
-                all_c = to_dict_list(get_all_children())
-                new_child = next((c for c in reversed(all_c)
-                                  if c["first_name"] == first_name and c["last_name"] == last_name), None)
-                if new_child:
-                    update_child_group(new_child["id"], group_value)
+                add_child(kg_id, first_name, last_name, birth_date,
+                          parent_name, parent_phone, enrollment_date, status_value, group_value)
                 st.success(t("child_added").format(name=first_name))
                 st.rerun()
             else:
@@ -74,17 +68,15 @@ with tab_add:
 
 with tab_list:
     st.subheader(t("all_children"))
-    raw_children = get_all_children()
-    children = to_dict_list(raw_children)
+    children = to_dict_list(get_all_children(kg_id))
 
     if children:
-        # Group filter
         group_filter_options = [t("group_all")] + group_options_display
-        selected_group_filter = st.selectbox(t("group_label"), options=group_filter_options, key="group_filter")
+        sel_group_filter = st.selectbox(t("group_label"), options=group_filter_options, key="group_filter")
 
-        if selected_group_filter != t("group_all"):
-            group_value_filter = CHILD_GROUPS[group_options_display.index(selected_group_filter)]
-            children_filtered = [c for c in children if c.get("group") == group_value_filter]
+        if sel_group_filter != t("group_all"):
+            gv = CHILD_GROUPS[group_options_display.index(sel_group_filter)]
+            children_filtered = [c for c in children if c.get("group") == gv]
         else:
             children_filtered = children
 
@@ -101,9 +93,9 @@ with tab_list:
         selected_id = st.selectbox(
             t("select_to_edit"),
             options=[c["id"] for c in children],
-            format_func=lambda x: next(f"{c['last_name']} {c['first_name']}" for c in children if c["id"] == x)
+            format_func=lambda x: next(
+                f"{c['last_name']} {c['first_name']}" for c in children if c["id"] == x)
         )
-
         child = next((c for c in children if c["id"] == selected_id), None)
         if child:
             with st.form("edit_form"):
@@ -117,19 +109,18 @@ with tab_list:
                     new_bd = st.date_input(t("birth_date_field"), value=bd)
                 with col2:
                     cur_status = child.get("status", CHILD_STATUSES[0])
-                    cur_status_disp = status_display.get(cur_status, status_options_display[0])
-                    cur_status_idx = status_options_display.index(cur_status_disp) if cur_status_disp in status_options_display else 0
-                    new_status_display = st.selectbox(t("status"), options=status_options_display, index=cur_status_idx)
-                    new_status = CHILD_STATUSES[status_options_display.index(new_status_display)]
+                    cur_s_disp = status_display.get(cur_status, status_options_display[0])
+                    cur_s_idx = status_options_display.index(cur_s_disp) if cur_s_disp in status_options_display else 0
+                    new_s_disp = st.selectbox(t("status"), options=status_options_display, index=cur_s_idx)
+                    new_status = CHILD_STATUSES[status_options_display.index(new_s_disp)]
 
                     cur_group = child.get("group", CHILD_GROUPS[0])
-                    cur_group_disp = group_display_map.get(cur_group, group_options_display[0])
-                    cur_group_idx = group_options_display.index(cur_group_disp) if cur_group_disp in group_options_display else 0
-                    new_group_display = st.selectbox(t("group_label"), options=group_options_display, index=cur_group_idx)
-                    new_group = CHILD_GROUPS[group_options_display.index(new_group_display)]
+                    cur_g_disp = group_display_map.get(cur_group, group_options_display[0])
+                    cur_g_idx = group_options_display.index(cur_g_disp) if cur_g_disp in group_options_display else 0
+                    new_g_disp = st.selectbox(t("group_label"), options=group_options_display, index=cur_g_idx)
+                    new_group = CHILD_GROUPS[group_options_display.index(new_g_disp)]
 
                 if st.form_submit_button(t("save_btn")):
-                    from crud import update_child_group
                     update_child(selected_id, fn, ln, new_bd, child.get("parent_name"),
                                  child.get("parent_phone"), child.get("enrollment_date"), new_status)
                     update_child_group(selected_id, new_group)

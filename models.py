@@ -1,6 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text
 from database import Base
+
+
+class Kindergarten(Base):
+    __tablename__ = "kindergartens"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    address = Column(String)
+    phone = Column(String)
+    logo_url = Column(String)
 
 
 class User(Base):
@@ -11,20 +19,13 @@ class User(Base):
     role = Column(String, nullable=False)  # 'superadmin' or 'admin'
     language = Column(String, default="ru", server_default="ru")
     currency = Column(String, default="ILS", server_default="ILS")
+    kindergarten_id = Column(Integer, ForeignKey("kindergartens.id"), nullable=True)
 
-
-class Expense(Base):
-    __tablename__ = "expenses"
-    id = Column(Integer, primary_key=True, index=True)
-    date = Column(Date)
-    category = Column(String)
-    amount = Column(Float)
-    description = Column(String)
-    comment = Column(Text)
 
 class Child(Base):
     __tablename__ = "children"
     id = Column(Integer, primary_key=True, index=True)
+    kindergarten_id = Column(Integer, ForeignKey("kindergartens.id"), nullable=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     birth_date = Column(Date)
@@ -32,8 +33,45 @@ class Child(Base):
     parent_phone = Column(String)
     enrollment_date = Column(Date)
     status = Column(String, default="активный")
-    group = Column(String, default="младшая", server_default="младшая")
-    monthly_fee = Column(Float, default=0.0, server_default="0")
+    group = Column(String, default="младшая")
+    monthly_fee = Column(Float, default=0.0)
+
+
+class Attendance(Base):
+    __tablename__ = "attendance"
+    id = Column(Integer, primary_key=True, index=True)
+    child_id = Column(Integer, ForeignKey("children.id"))
+    date = Column(Date)
+    status = Column(String)  # присутствовал, отсутствовал, болел
+
+
+class Product(Base):
+    __tablename__ = "products"
+    id = Column(Integer, primary_key=True, index=True)
+    kindergarten_id = Column(Integer, ForeignKey("kindergartens.id"), nullable=False)
+    name = Column(String)
+    unit = Column(String)
+    min_stock = Column(Float, default=1.0)
+
+
+class ProductTransaction(Base):
+    __tablename__ = "product_transactions"
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    date = Column(Date)
+    quantity = Column(Float)
+    transaction_type = Column(String)  # income / expense
+
+
+class Expense(Base):
+    __tablename__ = "expenses"
+    id = Column(Integer, primary_key=True, index=True)
+    kindergarten_id = Column(Integer, ForeignKey("kindergartens.id"), nullable=False)
+    date = Column(Date)
+    category = Column(String)
+    amount = Column(Float)
+    description = Column(String)
+    comment = Column(Text)
 
 
 class Payment(Base):
@@ -45,25 +83,3 @@ class Payment(Base):
     amount = Column(Float, nullable=False)
     paid_date = Column(Date)
     comment = Column(Text)
-
-class Attendance(Base):
-    __tablename__ = "attendance"
-    id = Column(Integer, primary_key=True, index=True)
-    child_id = Column(Integer, ForeignKey("children.id"))
-    date = Column(Date)
-    status = Column(String) # присутствовал, отсутствовал, болел
-
-class Product(Base):
-    __tablename__ = "products"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True)
-    unit = Column(String)
-    min_stock = Column(Float, default=1.0)
-
-class ProductTransaction(Base):
-    __tablename__ = "product_transactions"
-    id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"))
-    date = Column(Date)
-    quantity = Column(Float)
-    transaction_type = Column(String) # income / expense

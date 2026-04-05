@@ -1,187 +1,78 @@
-from sqlalchemy.orm import Session
-from models import Expense, Child, Attendance, Product, ProductTransaction, User, Payment
+from models import (Expense, Child, Attendance, Product, ProductTransaction,
+                    User, Payment, Kindergarten)
 from database import SessionLocal
 from sqlalchemy import func
 
-# --- РАСХОДЫ (уже работают) ---
-def get_all_expenses():
+
+# ── KINDERGARTENS ────────────────────────────────────────────────────────────
+
+def get_all_kindergartens():
     db = SessionLocal()
     try:
-        return db.query(Expense).all()
+        return db.query(Kindergarten).all()
     finally:
         db.close()
 
-def add_expense(date, category, amount, description, comment):
+
+def get_kindergarten_by_id(kg_id):
     db = SessionLocal()
     try:
-        new_item = Expense(date=date, category=category, amount=amount, description=description, comment=comment)
-        db.add(new_item)
+        return db.query(Kindergarten).filter(Kindergarten.id == kg_id).first()
+    finally:
+        db.close()
+
+
+def add_kindergarten(name, address, phone, logo_url):
+    db = SessionLocal()
+    try:
+        kg = Kindergarten(name=name, address=address, phone=phone, logo_url=logo_url)
+        db.add(kg)
         db.commit()
+        db.refresh(kg)
+        return kg.id
     finally:
         db.close()
 
-def delete_expense(expense_id):
+
+def update_kindergarten(kg_id, name, address, phone, logo_url):
     db = SessionLocal()
     try:
-        item = db.query(Expense).filter(Expense.id == expense_id).first()
-        if item:
-            db.delete(item)
+        kg = db.query(Kindergarten).filter(Kindergarten.id == kg_id).first()
+        if kg:
+            kg.name = name
+            kg.address = address
+            kg.phone = phone
+            kg.logo_url = logo_url
             db.commit()
     finally:
         db.close()
 
-# --- ДЕТИ (наводим порядок тут) ---
-def get_all_children():
-    db = SessionLocal()
-    try:
-        return db.query(Child).all()
-    finally:
-        db.close()
 
-def add_child(first_name, last_name, birth_date, parent_name, parent_phone, enrollment_date, status):
+def delete_kindergarten(kg_id):
     db = SessionLocal()
     try:
-        new_child = Child(
-            first_name=first_name, last_name=last_name, birth_date=birth_date,
-            parent_name=parent_name, parent_phone=parent_phone, 
-            enrollment_date=enrollment_date, status=status
-        )
-        db.add(new_child)
-        db.commit()
-    finally:
-        db.close()
+        # cascade: delete all linked data
+        children = db.query(Child).filter(Child.kindergarten_id == kg_id).all()
+        for child in children:
+            db.query(Attendance).filter(Attendance.child_id == child.id).delete()
+            db.query(Payment).filter(Payment.child_id == child.id).delete()
+        db.query(Child).filter(Child.kindergarten_id == kg_id).delete()
 
-def update_child(child_id, first_name, last_name, birth_date, parent_name, parent_phone, enrollment_date, status):
-    db = SessionLocal()
-    try:
-        child = db.query(Child).filter(Child.id == child_id).first()
-        if child:
-            child.first_name = first_name
-            child.last_name = last_name
-            child.birth_date = birth_date
-            child.parent_name = parent_name
-            child.parent_phone = parent_phone
-            child.enrollment_date = enrollment_date
-            child.status = status
-            db.commit()
-    finally:
-        db.close()
-
-def delete_child(child_id):
-    db = SessionLocal()
-    try:
-        child = db.query(Child).filter(Child.id == child_id).first()
-        if child:
-            db.delete(child)
-            db.commit()
-    finally:
-        db.close()
-
-# --- ПОСЕЩАЕМОСТЬ ---
-def add_attendance(child_id, date, status):
-    db = SessionLocal()
-    try:
-        existing = db.query(Attendance).filter(Attendance.child_id == child_id, Attendance.date == date).first()
-        if existing:
-            existing.status = status
-        else:
-            new_att = Attendance(child_id=child_id, date=date, status=status)
-            db.add(new_att)
-        db.commit()
-    finally:
-        db.close()
-
-def get_attendance_by_date(selected_date):
-    db = SessionLocal()
-    try:
-        return db.query(Attendance).filter(Attendance.date == selected_date).all()
-    finally:
-        db.close()
-
-def get_all_attendance():
-    db = SessionLocal()
-    try:
-        # Сложный запрос, чтобы сразу получить имена детей
-        results = db.query(Attendance, Child).join(Child).all()
-        data = []
-        for att, child in results:
-            data.append({
-                "date": att.date,
-                "first_name": child.first_name,
-                "last_name": child.last_name,
-                "status": att.status
-            })
-        return data
-    finally:
-        db.close()
-
-# --- ПРОДУКТЫ ---
-def get_all_products():
-    db = SessionLocal()
-    try:
-        return db.query(Product).all()
-    finally:
-        db.close()
-
-def add_product(name, unit, min_stock):
-    db = SessionLocal()
-    try:
-        new_p = Product(name=name, unit=unit, min_stock=min_stock)
-        db.add(new_p)
-        db.commit()
-    finally:
-        db.close()
-
-def get_product_inventory():
-    db = SessionLocal()
-    try:
-        products = db.query(Product).all()
-        inventory = []
+        products = db.query(Product).filter(Product.kindergarten_id == kg_id).all()
         for p in products:
-            incomes = db.query(func.sum(ProductTransaction.quantity)).filter(
-                ProductTransaction.product_id == p.id, ProductTransaction.transaction_type == 'income').scalar() or 0
-            expenses = db.query(func.sum(ProductTransaction.quantity)).filter(
-                ProductTransaction.product_id == p.id, ProductTransaction.transaction_type == 'expense').scalar() or 0
-            inventory.append({
-                "id": p.id, "name": p.name, "unit": p.unit,
-                "current_stock": incomes - expenses, "min_stock": p.min_stock
-            })
-        return inventory
-    finally:
-        db.close()
-        
-def add_product_income(product_id, date, quantity):
-    db = SessionLocal()
-    try:
-        new_trans = ProductTransaction(product_id=product_id, date=date, quantity=quantity, transaction_type='income')
-        db.add(new_trans)
+            db.query(ProductTransaction).filter(ProductTransaction.product_id == p.id).delete()
+        db.query(Product).filter(Product.kindergarten_id == kg_id).delete()
+
+        db.query(Expense).filter(Expense.kindergarten_id == kg_id).delete()
+        db.query(User).filter(User.kindergarten_id == kg_id).update({"kindergarten_id": None})
+        db.query(Kindergarten).filter(Kindergarten.id == kg_id).delete()
         db.commit()
     finally:
         db.close()
 
-def add_product_expense(product_id, date, quantity):
-    db = SessionLocal()
-    try:
-        new_trans = ProductTransaction(product_id=product_id, date=date, quantity=quantity, transaction_type='expense')
-        db.add(new_trans)
-        db.commit()
-    finally:
-        db.close()
 
-def delete_product(product_id):
-    db = SessionLocal()
-    try:
-        product = db.query(Product).filter(Product.id == product_id).first()
-        if product:
-            # Сначала удаляем транзакции продукта, потом сам продукт
-            db.query(ProductTransaction).filter(ProductTransaction.product_id == product_id).delete()
-            db.delete(product)
-            db.commit()
-    finally:
-        db.close()
+# ── USERS ────────────────────────────────────────────────────────────────────
 
-
-# --- ПОЛЬЗОВАТЕЛИ / АУТЕНТИФИКАЦИЯ ---
 def get_user_by_email(email: str):
     db = SessionLocal()
     try:
@@ -190,10 +81,11 @@ def get_user_by_email(email: str):
         db.close()
 
 
-def create_user(email: str, password_hash: str, role: str):
+def create_user(email: str, password_hash: str, role: str, kindergarten_id=None):
     db = SessionLocal()
     try:
-        user = User(email=email, password_hash=password_hash, role=role)
+        user = User(email=email, password_hash=password_hash, role=role,
+                    kindergarten_id=kindergarten_id)
         db.add(user)
         db.commit()
         return True
@@ -204,10 +96,21 @@ def create_user(email: str, password_hash: str, role: str):
         db.close()
 
 
-def get_all_admins():
+def superadmin_exists():
     db = SessionLocal()
     try:
-        return db.query(User).filter(User.role == 'admin').all()
+        return db.query(User).filter(User.role == 'superadmin').first() is not None
+    finally:
+        db.close()
+
+
+def get_all_admins(kindergarten_id=None):
+    db = SessionLocal()
+    try:
+        q = db.query(User).filter(User.role == 'admin')
+        if kindergarten_id is not None:
+            q = q.filter(User.kindergarten_id == kindergarten_id)
+        return q.all()
     finally:
         db.close()
 
@@ -225,24 +128,61 @@ def delete_user_by_email(email: str):
         db.close()
 
 
-def superadmin_exists():
+def update_user_preferences(email: str, language: str, currency: str):
     db = SessionLocal()
     try:
-        return db.query(User).filter(User.role == 'superadmin').first() is not None
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.language = language
+            user.currency = currency
+            db.commit()
     finally:
         db.close()
 
 
-# --- ГРУППЫ ---
-def get_children_by_group(group: str):
+# ── CHILDREN ─────────────────────────────────────────────────────────────────
+
+def get_all_children(kindergarten_id):
     db = SessionLocal()
     try:
-        return db.query(Child).filter(Child.group == group).all()
+        return db.query(Child).filter(Child.kindergarten_id == kindergarten_id).all()
     finally:
         db.close()
 
 
-def update_child_group(child_id: int, group: str):
+def add_child(kindergarten_id, first_name, last_name, birth_date,
+              parent_name, parent_phone, enrollment_date, status, group="младшая"):
+    db = SessionLocal()
+    try:
+        child = Child(kindergarten_id=kindergarten_id, first_name=first_name,
+                      last_name=last_name, birth_date=birth_date,
+                      parent_name=parent_name, parent_phone=parent_phone,
+                      enrollment_date=enrollment_date, status=status, group=group)
+        db.add(child)
+        db.commit()
+    finally:
+        db.close()
+
+
+def update_child(child_id, first_name, last_name, birth_date,
+                 parent_name, parent_phone, enrollment_date, status):
+    db = SessionLocal()
+    try:
+        child = db.query(Child).filter(Child.id == child_id).first()
+        if child:
+            child.first_name = first_name
+            child.last_name = last_name
+            child.birth_date = birth_date
+            child.parent_name = parent_name
+            child.parent_phone = parent_phone
+            child.enrollment_date = enrollment_date
+            child.status = status
+            db.commit()
+    finally:
+        db.close()
+
+
+def update_child_group(child_id, group):
     db = SessionLocal()
     try:
         child = db.query(Child).filter(Child.id == child_id).first()
@@ -253,73 +193,7 @@ def update_child_group(child_id: int, group: str):
         db.close()
 
 
-# --- ОПЛАТА ---
-def get_all_payments():
-    db = SessionLocal()
-    try:
-        results = db.query(Payment, Child).join(Child).all()
-        data = []
-        for pay, child in results:
-            data.append({
-                "id": pay.id,
-                "child_id": pay.child_id,
-                "child_name": f"{child.last_name} {child.first_name}",
-                "year": pay.year,
-                "month": pay.month,
-                "amount": pay.amount,
-                "paid_date": pay.paid_date,
-                "comment": pay.comment,
-            })
-        return data
-    finally:
-        db.close()
-
-
-def add_payment(child_id: int, year: int, month: int, amount: float, paid_date, comment: str):
-    db = SessionLocal()
-    try:
-        pay = Payment(child_id=child_id, year=year, month=month,
-                      amount=amount, paid_date=paid_date, comment=comment)
-        db.add(pay)
-        db.commit()
-    finally:
-        db.close()
-
-
-def delete_payment(payment_id: int):
-    db = SessionLocal()
-    try:
-        pay = db.query(Payment).filter(Payment.id == payment_id).first()
-        if pay:
-            db.delete(pay)
-            db.commit()
-    finally:
-        db.close()
-
-
-def get_debtors(current_year: int, current_month: int):
-    """Return active children whose total payments for the month are less than monthly_fee."""
-    db = SessionLocal()
-    try:
-        active = db.query(Child).filter(Child.status == "активный").all()
-        debtors = []
-        for child in active:
-            if not child.monthly_fee or child.monthly_fee <= 0:
-                continue  # fee not set — skip
-            total_paid = db.query(func.sum(Payment.amount)).filter(
-                Payment.child_id == child.id,
-                Payment.year == current_year,
-                Payment.month == current_month
-            ).scalar() or 0
-            if total_paid < child.monthly_fee:
-                child._debt_amount = child.monthly_fee - total_paid
-                debtors.append(child)
-        return debtors
-    finally:
-        db.close()
-
-
-def update_child_fee(child_id: int, monthly_fee: float):
+def update_child_fee(child_id, monthly_fee):
     db = SessionLocal()
     try:
         child = db.query(Child).filter(Child.id == child_id).first()
@@ -330,16 +204,221 @@ def update_child_fee(child_id: int, monthly_fee: float):
         db.close()
 
 
-# --- ПОЛЬЗОВАТЕЛИ / НАСТРОЙКИ ---
-def update_user_preferences(email: str, language: str, currency: str):
+def delete_child(child_id):
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.email == email).first()
-        if user:
-            user.language = language
-            user.currency = currency
+        db.query(Attendance).filter(Attendance.child_id == child_id).delete()
+        db.query(Payment).filter(Payment.child_id == child_id).delete()
+        child = db.query(Child).filter(Child.id == child_id).first()
+        if child:
+            db.delete(child)
             db.commit()
-            return True
-        return False
+    finally:
+        db.close()
+
+
+# ── ATTENDANCE ────────────────────────────────────────────────────────────────
+
+def add_attendance(child_id, date, status):
+    db = SessionLocal()
+    try:
+        existing = db.query(Attendance).filter(
+            Attendance.child_id == child_id, Attendance.date == date).first()
+        if existing:
+            existing.status = status
+        else:
+            db.add(Attendance(child_id=child_id, date=date, status=status))
+        db.commit()
+    finally:
+        db.close()
+
+
+def get_attendance_by_date(kindergarten_id, selected_date):
+    db = SessionLocal()
+    try:
+        results = db.query(Attendance).join(Child).filter(
+            Child.kindergarten_id == kindergarten_id,
+            Attendance.date == selected_date
+        ).all()
+        return results
+    finally:
+        db.close()
+
+
+def get_all_attendance(kindergarten_id):
+    db = SessionLocal()
+    try:
+        results = db.query(Attendance, Child).join(Child).filter(
+            Child.kindergarten_id == kindergarten_id).all()
+        return [{"date": a.date, "child_id": a.child_id,
+                 "first_name": c.first_name, "last_name": c.last_name,
+                 "group": c.group, "status": a.status}
+                for a, c in results]
+    finally:
+        db.close()
+
+
+# ── PRODUCTS ──────────────────────────────────────────────────────────────────
+
+def get_all_products(kindergarten_id):
+    db = SessionLocal()
+    try:
+        return db.query(Product).filter(Product.kindergarten_id == kindergarten_id).all()
+    finally:
+        db.close()
+
+
+def add_product(kindergarten_id, name, unit, min_stock):
+    db = SessionLocal()
+    try:
+        db.add(Product(kindergarten_id=kindergarten_id, name=name,
+                       unit=unit, min_stock=min_stock))
+        db.commit()
+    finally:
+        db.close()
+
+
+def get_product_inventory(kindergarten_id):
+    db = SessionLocal()
+    try:
+        products = db.query(Product).filter(Product.kindergarten_id == kindergarten_id).all()
+        inventory = []
+        for p in products:
+            inc = db.query(func.sum(ProductTransaction.quantity)).filter(
+                ProductTransaction.product_id == p.id,
+                ProductTransaction.transaction_type == 'income').scalar() or 0
+            exp = db.query(func.sum(ProductTransaction.quantity)).filter(
+                ProductTransaction.product_id == p.id,
+                ProductTransaction.transaction_type == 'expense').scalar() or 0
+            inventory.append({"id": p.id, "name": p.name, "unit": p.unit,
+                               "current_stock": inc - exp, "min_stock": p.min_stock})
+        return inventory
+    finally:
+        db.close()
+
+
+def add_product_income(product_id, date, quantity):
+    db = SessionLocal()
+    try:
+        db.add(ProductTransaction(product_id=product_id, date=date,
+                                  quantity=quantity, transaction_type='income'))
+        db.commit()
+    finally:
+        db.close()
+
+
+def add_product_expense(product_id, date, quantity):
+    db = SessionLocal()
+    try:
+        db.add(ProductTransaction(product_id=product_id, date=date,
+                                  quantity=quantity, transaction_type='expense'))
+        db.commit()
+    finally:
+        db.close()
+
+
+def delete_product(product_id):
+    db = SessionLocal()
+    try:
+        db.query(ProductTransaction).filter(
+            ProductTransaction.product_id == product_id).delete()
+        p = db.query(Product).filter(Product.id == product_id).first()
+        if p:
+            db.delete(p)
+            db.commit()
+    finally:
+        db.close()
+
+
+# ── EXPENSES ──────────────────────────────────────────────────────────────────
+
+def get_all_expenses(kindergarten_id):
+    db = SessionLocal()
+    try:
+        return db.query(Expense).filter(
+            Expense.kindergarten_id == kindergarten_id).all()
+    finally:
+        db.close()
+
+
+def add_expense(kindergarten_id, date, category, amount, description, comment):
+    db = SessionLocal()
+    try:
+        db.add(Expense(kindergarten_id=kindergarten_id, date=date,
+                       category=category, amount=amount,
+                       description=description, comment=comment))
+        db.commit()
+    finally:
+        db.close()
+
+
+def delete_expense(expense_id):
+    db = SessionLocal()
+    try:
+        e = db.query(Expense).filter(Expense.id == expense_id).first()
+        if e:
+            db.delete(e)
+            db.commit()
+    finally:
+        db.close()
+
+
+# ── PAYMENTS ──────────────────────────────────────────────────────────────────
+
+def get_all_payments(kindergarten_id):
+    db = SessionLocal()
+    try:
+        results = db.query(Payment, Child).join(Child).filter(
+            Child.kindergarten_id == kindergarten_id).all()
+        return [{"id": p.id, "child_id": p.child_id,
+                 "child_name": f"{c.last_name} {c.first_name}",
+                 "year": p.year, "month": p.month, "amount": p.amount,
+                 "paid_date": p.paid_date, "comment": p.comment}
+                for p, c in results]
+    finally:
+        db.close()
+
+
+def add_payment(child_id, year, month, amount, paid_date, comment):
+    db = SessionLocal()
+    try:
+        db.add(Payment(child_id=child_id, year=year, month=month,
+                       amount=amount, paid_date=paid_date, comment=comment))
+        db.commit()
+    finally:
+        db.close()
+
+
+def delete_payment(payment_id):
+    db = SessionLocal()
+    try:
+        p = db.query(Payment).filter(Payment.id == payment_id).first()
+        if p:
+            db.delete(p)
+            db.commit()
+    finally:
+        db.close()
+
+
+def get_debtors(kindergarten_id, current_year, current_month):
+    db = SessionLocal()
+    try:
+        active = db.query(Child).filter(
+            Child.kindergarten_id == kindergarten_id,
+            Child.status == "активный"
+        ).all()
+        debtors = []
+        for child in active:
+            if not child.monthly_fee or child.monthly_fee <= 0:
+                continue
+            total_paid = db.query(func.sum(Payment.amount)).filter(
+                Payment.child_id == child.id,
+                Payment.year == current_year,
+                Payment.month == current_month
+            ).scalar() or 0
+            if total_paid < child.monthly_fee:
+                child._debt_amount = child.monthly_fee - total_paid
+                debtors.append(child)
+        return debtors
     finally:
         db.close()

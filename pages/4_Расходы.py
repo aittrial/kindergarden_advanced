@@ -1,17 +1,18 @@
 import streamlit as st
 import pandas as pd
-from crud import get_all_expenses, add_expense, delete_expense
 import datetime
 import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from auth_guard import require_login, render_sidebar_user
-from i18n import t, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_DISPLAY, expense_cat_display, format_amount, get_lang
+from crud import get_all_expenses, add_expense, delete_expense
+from auth_guard import require_login, render_sidebar_user, get_active_kindergarten_id
+from i18n import (t, EXPENSE_CATEGORIES, EXPENSE_CATEGORY_DISPLAY,
+                  expense_cat_display, format_amount, get_lang)
 
 require_login()
 render_sidebar_user()
-
+kg_id = get_active_kindergarten_id()
 st.title(t("expenses_title"))
 
 lang = get_lang()
@@ -24,16 +25,14 @@ with tab_add:
     st.subheader(t("add_expense_header"))
     with st.form("expense_form", clear_on_submit=True):
         exp_date = st.date_input(t("date_field"), datetime.date.today())
-        selected_cat_display = st.selectbox(t("category_field"), options=cats_display)
-        category = EXPENSE_CATEGORIES[cats_display.index(selected_cat_display)]
+        sel_cat = st.selectbox(t("category_field"), options=cats_display)
+        category = EXPENSE_CATEGORIES[cats_display.index(sel_cat)]
         amount = st.number_input(t("amount_field"), min_value=0.0, step=0.01)
         description = st.text_input(t("description_field"))
         comment = st.text_area(t("comment_field"))
-
-        submitted = st.form_submit_button(t("add_expense_btn"))
-        if submitted:
+        if st.form_submit_button(t("add_expense_btn")):
             if amount > 0:
-                add_expense(exp_date, category, amount, description, comment)
+                add_expense(kg_id, exp_date, category, amount, description, comment)
                 st.success(t("expense_added"))
                 st.rerun()
             else:
@@ -41,8 +40,7 @@ with tab_add:
 
 with tab_list:
     st.subheader(t("all_expenses_header"))
-
-    expenses_raw = get_all_expenses()
+    expenses_raw = get_all_expenses(kg_id)
     expenses_list = []
     if expenses_raw:
         for e in expenses_raw:
@@ -62,7 +60,8 @@ with tab_list:
         cat_filters = st.multiselect(t("filter_category"), options=categories)
     with col2:
         if not df.empty and "date" in df.columns:
-            df["year_month"] = df["date"].apply(lambda x: x.strftime("%Y-%m") if hasattr(x, "strftime") else str(x)[:7])
+            df["year_month"] = df["date"].apply(
+                lambda x: x.strftime("%Y-%m") if hasattr(x, "strftime") else str(x)[:7])
             months = sorted(df["year_month"].unique(), reverse=True)
         else:
             months = []
@@ -76,9 +75,9 @@ with tab_list:
 
     if not filtered_df.empty:
         st.dataframe(
-            filtered_df.drop(columns=["year_month"]) if "year_month" in filtered_df.columns else filtered_df,
-            use_container_width=True
-        )
+            filtered_df.drop(columns=["year_month", "kindergarten_id"],
+                             errors="ignore"),
+            use_container_width=True)
         expense_to_delete = st.selectbox(t("select_delete_id"), filtered_df["id"])
         if st.button(t("delete_record_btn")):
             delete_expense(expense_to_delete)
