@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import Expense, Child, Attendance, Product, ProductTransaction, User
+from models import Expense, Child, Attendance, Product, ProductTransaction, User, Payment
 from database import SessionLocal
 from sqlalchemy import func
 
@@ -233,6 +233,98 @@ def superadmin_exists():
         db.close()
 
 
+# --- ГРУППЫ ---
+def get_children_by_group(group: str):
+    db = SessionLocal()
+    try:
+        return db.query(Child).filter(Child.group == group).all()
+    finally:
+        db.close()
+
+
+def update_child_group(child_id: int, group: str):
+    db = SessionLocal()
+    try:
+        child = db.query(Child).filter(Child.id == child_id).first()
+        if child:
+            child.group = group
+            db.commit()
+    finally:
+        db.close()
+
+
+# --- ОПЛАТА ---
+def get_all_payments():
+    db = SessionLocal()
+    try:
+        results = db.query(Payment, Child).join(Child).all()
+        data = []
+        for pay, child in results:
+            data.append({
+                "id": pay.id,
+                "child_id": pay.child_id,
+                "child_name": f"{child.last_name} {child.first_name}",
+                "year": pay.year,
+                "month": pay.month,
+                "amount": pay.amount,
+                "paid_date": pay.paid_date,
+                "comment": pay.comment,
+            })
+        return data
+    finally:
+        db.close()
+
+
+def add_payment(child_id: int, year: int, month: int, amount: float, paid_date, comment: str):
+    db = SessionLocal()
+    try:
+        pay = Payment(child_id=child_id, year=year, month=month,
+                      amount=amount, paid_date=paid_date, comment=comment)
+        db.add(pay)
+        db.commit()
+    finally:
+        db.close()
+
+
+def delete_payment(payment_id: int):
+    db = SessionLocal()
+    try:
+        pay = db.query(Payment).filter(Payment.id == payment_id).first()
+        if pay:
+            db.delete(pay)
+            db.commit()
+    finally:
+        db.close()
+
+
+def get_debtors(current_year: int, current_month: int):
+    """Return active children who have no payment for the current month."""
+    db = SessionLocal()
+    try:
+        active = db.query(Child).filter(Child.status == "активный").all()
+        paid_ids = {
+            p.child_id for p in db.query(Payment).filter(
+                Payment.year == current_year,
+                Payment.month == current_month
+            ).all()
+        }
+        return [c for c in active if c.id not in paid_ids]
+    finally:
+        db.close()
+
+
+def update_child_fee(child_id: int, monthly_fee: float):
+    db = SessionLocal()
+    try:
+        child = db.query(Child).filter(Child.id == child_id).first()
+        if child:
+            child.monthly_fee = monthly_fee
+            db.commit()
+    finally:
+        db.close()
+
+
+# --- ПОЛЬЗОВАТЕЛИ / НАСТРОЙКИ ---
 def update_user_preferences(email: str, language: str, currency: str):
     db = SessionLocal()
     try:

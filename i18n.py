@@ -49,6 +49,38 @@ TRANSLATIONS = {
         "nav_expenses": "Расходы",
         "nav_reports": "Отчеты",
         "nav_admins": "Админы",
+        "nav_payments": "Оплата",
+        # Groups
+        "group_label": "Группа",
+        "group_all": "Все группы",
+        "group_junior": "Младшая",
+        "group_middle": "Средняя",
+        "group_senior": "Старшая",
+        # Payments page
+        "payments_title": "💳 Учет оплаты родителей",
+        "add_payment_tab": "➕ Добавить оплату",
+        "payment_history_tab": "📋 История платежей",
+        "debtors_tab": "⚠️ Должники",
+        "child_label": "Ребенок",
+        "year_label": "Год",
+        "month_label": "Месяц",
+        "amount_label": "Сумма",
+        "paid_date_label": "Дата оплаты",
+        "comment_label": "Комментарий",
+        "add_payment_btn": "Добавить платеж",
+        "payment_added": "Платеж добавлен!",
+        "no_payments": "Платежей пока нет.",
+        "delete_payment_btn": "Удалить",
+        "payment_deleted": "Платеж удален",
+        "monthly_fee_label": "Ежемесячный взнос",
+        "set_fee_btn": "Установить взнос",
+        "fee_updated": "Взнос обновлен",
+        "debtors_header": "Не оплатили текущий месяц",
+        "no_debtors": "Все оплатили! ✅",
+        "debtor_month": "Проверка за месяц",
+        # Alerts
+        "alert_debtors": "⚠️ Должников за текущий месяц: {n}",
+        "alert_low_stock": "⚠️ Продуктов с низким остатком: {n}",
         # Sidebar settings
         "settings_header": "⚙️ Настройки",
         "preferences_saved": "Настройки сохранены",
@@ -210,6 +242,38 @@ TRANSLATIONS = {
         "nav_expenses": "Expenses",
         "nav_reports": "Reports",
         "nav_admins": "Admins",
+        "nav_payments": "Payments",
+        # Groups
+        "group_label": "Group",
+        "group_all": "All groups",
+        "group_junior": "Junior",
+        "group_middle": "Middle",
+        "group_senior": "Senior",
+        # Payments page
+        "payments_title": "💳 Parent Payments",
+        "add_payment_tab": "➕ Add Payment",
+        "payment_history_tab": "📋 Payment History",
+        "debtors_tab": "⚠️ Debtors",
+        "child_label": "Child",
+        "year_label": "Year",
+        "month_label": "Month",
+        "amount_label": "Amount",
+        "paid_date_label": "Payment Date",
+        "comment_label": "Comment",
+        "add_payment_btn": "Add Payment",
+        "payment_added": "Payment added!",
+        "no_payments": "No payments yet.",
+        "delete_payment_btn": "Delete",
+        "payment_deleted": "Payment deleted",
+        "monthly_fee_label": "Monthly Fee",
+        "set_fee_btn": "Set Fee",
+        "fee_updated": "Fee updated",
+        "debtors_header": "Not paid for current month",
+        "no_debtors": "Everyone paid! ✅",
+        "debtor_month": "Check for month",
+        # Alerts
+        "alert_debtors": "⚠️ Debtors this month: {n}",
+        "alert_low_stock": "⚠️ Low stock products: {n}",
         # Sidebar settings
         "settings_header": "⚙️ Settings",
         "preferences_saved": "Settings saved",
@@ -358,6 +422,19 @@ PRODUCT_UNIT_DISPLAY = {
     "en": {"кг": "kg", "литры": "liters", "штуки": "pieces"},
 }
 
+CHILD_GROUPS = ["младшая", "средняя", "старшая"]
+CHILD_GROUP_DISPLAY = {
+    "ru": {"младшая": "Младшая", "средняя": "Средняя", "старшая": "Старшая"},
+    "en": {"младшая": "Junior", "средняя": "Middle", "старшая": "Senior"},
+}
+
+MONTHS = {
+    "ru": ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+           "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"],
+    "en": ["January", "February", "March", "April", "May", "June",
+           "July", "August", "September", "October", "November", "December"],
+}
+
 
 def get_lang():
     return st.session_state.get("lang", "ru")
@@ -399,3 +476,13 @@ def expense_cat_display(cat):
 def unit_display(unit):
     lang = get_lang()
     return PRODUCT_UNIT_DISPLAY.get(lang, PRODUCT_UNIT_DISPLAY["ru"]).get(unit, unit)
+
+
+def group_display(group):
+    lang = get_lang()
+    return CHILD_GROUP_DISPLAY.get(lang, CHILD_GROUP_DISPLAY["ru"]).get(group, group)
+
+
+def month_name(month_num):
+    lang = get_lang()
+    return MONTHS[lang][month_num - 1]

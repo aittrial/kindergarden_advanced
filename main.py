@@ -3,7 +3,8 @@ import database
 from database import engine, Base, run_migrations
 import models
 from auth import hash_password, verify_password
-from crud import get_user_by_email, create_user, superadmin_exists, update_user_preferences
+from crud import (get_user_by_email, create_user, superadmin_exists,
+                  update_user_preferences, get_debtors, get_product_inventory)
 from i18n import t, CURRENCIES
 
 Base.metadata.create_all(bind=engine)
@@ -153,6 +154,20 @@ def main_page():
     render_settings_sidebar(user)
 
     st.title(f"{t('app_title')} 🏫")
+
+    # --- Alerts ---
+    from datetime import date
+    today = date.today()
+    debtors = get_debtors(today.year, today.month)
+    inventory = get_product_inventory()
+    low_stock = [p for p in inventory if p["current_stock"] < p["min_stock"]]
+
+    if debtors:
+        st.warning(t("alert_debtors").format(n=len(debtors)))
+    if low_stock:
+        names = ", ".join(p["name"] for p in low_stock)
+        st.warning(t("alert_low_stock").format(n=len(low_stock)) + f": {names}")
+
     st.write(t("welcome"))
     st.info(t("use_menu"))
 
@@ -184,6 +199,7 @@ if st.session_state.user is not None:
         st.Page("pages/3_Продукты.py", title=t("nav_products"), icon="🍎"),
         st.Page("pages/4_Расходы.py", title=t("nav_expenses"), icon="💰"),
         st.Page("pages/5_Отчеты.py", title=t("nav_reports"), icon="📊"),
+        st.Page("pages/7_Оплата.py", title=t("nav_payments"), icon="💳"),
     ]
     if user["role"] == "superadmin":
         pages.append(st.Page("pages/6_Админы.py", title=t("nav_admins"), icon="👤"))

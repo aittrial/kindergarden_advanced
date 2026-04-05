@@ -46,3 +46,19 @@ def run_migrations():
             conn.commit()
         except Exception:
             conn.rollback()
+        # group column for children
+        try:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE children ADD COLUMN \"group\" VARCHAR DEFAULT 'младшая'"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+        # monthly_fee column for children
+        try:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE children ADD COLUMN monthly_fee FLOAT DEFAULT 0"
+            ))
+            conn.commit()
+        except Exception:
+            conn.rollback()

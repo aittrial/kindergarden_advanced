@@ -32,6 +32,19 @@ class Child(Base):
     parent_phone = Column(String)
     enrollment_date = Column(Date)
     status = Column(String, default="активный")
+    group = Column(String, default="младшая", server_default="младшая")
+    monthly_fee = Column(Float, default=0.0, server_default="0")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    child_id = Column(Integer, ForeignKey("children.id"))
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    amount = Column(Float, nullable=False)
+    paid_date = Column(Date)
+    comment = Column(Text)
 
 class Attendance(Base):
     __tablename__ = "attendance"
