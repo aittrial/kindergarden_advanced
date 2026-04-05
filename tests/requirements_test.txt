@@ -1,0 +1,6 @@
+# Зависимости для запуска тестов
+# Установить: pip install -r tests/requirements_test.txt
+
+pytest>=7.0.0
+sqlalchemy>=1.4.0,<3.0.0
+streamlit>=1.35.0
