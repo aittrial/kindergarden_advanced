@@ -7,7 +7,10 @@
       "Bash(taskkill /F /IM streamlit.exe)",
       "Bash(taskkill /F /IM python.exe /FI \"WINDOWTITLE eq streamlit*\")",
       "Bash(gh auth:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(py -m pip install selenium webdriver-manager)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\RedmiBook\\\\Documents\\\\MyProjects\\\\ClaudeCode_test\\\\kindergarden\\\\local_storage.db\" -ErrorAction SilentlyContinue)",
+      "Bash(del \"c:\\\\Users\\\\RedmiBook\\\\Documents\\\\MyProjects\\\\ClaudeCode_test\\\\kindergarden\\\\local_storage.db\")"
     ]
   }
 }
