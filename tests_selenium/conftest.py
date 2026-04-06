@@ -207,6 +207,5 @@ def login(driver, email=TEST_EMAIL, password=TEST_PASSWORD):
         "//button[.//p[contains(text(), 'Войти') or contains(text(), 'Sign In')]]")
     login_btn.click()
 
-    # Ждём загрузки следующей страницы
-    streamlit_ready(driver)
-    time.sleep(2)
+    # Ждём загрузки следующей страницы — Streamlit делает полный rerender
+    time.sleep(4)

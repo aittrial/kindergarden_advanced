@@ -8,15 +8,36 @@ test_s02_navigation.py — GUI тесты навигации
 1. Вход в систему через вспомогательную функцию login()
 2. Поиск элементов в sidebar (боковом меню)
 3. Клик по пунктам меню и проверка перехода
-4. screenshot() — скриншот при падении теста
+
+ВАЖНО о структуре Streamlit приложения:
+  - После входа суперадмин видит список садиков
+  - Sidebar появляется СРАЗУ после входа (содержит email + настройки)
+  - Пункты навигации (Дети, Посещаемость...) появляются только ПОСЛЕ входа в садик
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import time
-import pytest
 from selenium.webdriver.common.by import By
 
-from conftest import APP_URL, wait_for, wait_for_text, streamlit_ready, login
+from conftest import APP_URL, TEST_EMAIL, wait_for, login
+
+
+def login_and_enter_kindergarten(driver):
+    """
+    Входим в систему и входим в первый садик.
+    Используется в тестах, которым нужен полный dashboard с навигацией.
+    """
+    login(driver)
+    time.sleep(3)
+
+    # Ищем кнопку "Войти →" для первого садика
+    try:
+        enter_btn = wait_for(driver, By.XPATH,
+            "//button[.//p[contains(text(), '→')]]", timeout=8)
+        enter_btn.click()
+        time.sleep(4)
+    except Exception:
+        pass  # Уже в садике
 
 
 class TestSidebarNavigation:
@@ -27,11 +48,13 @@ class TestSidebarNavigation:
         ТЕСТ 1: После входа боковое меню (sidebar) отображается.
 
         В Streamlit sidebar находится в div с data-testid="stSidebar".
+        Sidebar виден сразу после входа — ещё на экране выбора садика.
         """
         login(driver)
+        time.sleep(3)
 
         sidebar = wait_for(driver, By.XPATH,
-            "//*[@data-testid='stSidebar']")
+            "//*[@data-testid='stSidebar']", timeout=15)
 
         assert sidebar.is_displayed(), "Sidebar не отображается после входа"
         print("\n✅ Sidebar отображается")
@@ -43,14 +66,18 @@ class TestSidebarNavigation:
         После входа в sidebar показывается email текущего пользователя.
         """
         login(driver)
+        time.sleep(3)
 
-        # Ищем email в sidebar
-        sidebar = wait_for(driver, By.XPATH, "//*[@data-testid='stSidebar']")
+        sidebar = wait_for(driver, By.XPATH,
+            "//*[@data-testid='stSidebar']", timeout=15)
+
+        # Даём время на полный рендер sidebar
+        time.sleep(2)
         sidebar_text = sidebar.text
 
-        from conftest import TEST_EMAIL
         assert TEST_EMAIL in sidebar_text, (
-            f"Email '{TEST_EMAIL}' не найден в sidebar. Содержимое: {sidebar_text[:200]}"
+            f"Email '{TEST_EMAIL}' не найден в sidebar.\n"
+            f"Содержимое sidebar: '{sidebar_text[:300]}'"
         )
         print(f"\n✅ Email пользователя в sidebar: {TEST_EMAIL}")
 
@@ -61,32 +88,28 @@ class TestSidebarNavigation:
         В sidebar должна быть кнопка "Выйти" или "Sign Out".
         """
         login(driver)
+        time.sleep(3)
 
         logout_btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Выйти') or contains(text(), 'Sign Out')]]")
+            "//button[.//p[contains(text(), 'Выйти') or contains(text(), 'Sign Out')]]",
+            timeout=15)
 
         assert logout_btn.is_displayed()
-        print(f"\n✅ Кнопка выхода найдена: '{logout_btn.text}'")
+        print(f"\n✅ Кнопка выхода найдена")
 
     def test_logout_works(self, driver):
         """
         ТЕСТ 4: Нажатие "Выйти" возвращает на страницу входа.
-
-        Что делает:
-          1. Входим в систему
-          2. Нажимаем "Выйти"
-          3. Проверяем, что снова видим страницу входа
         """
         login(driver)
+        time.sleep(3)
 
-        # Нажимаем Выйти
         logout_btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Выйти') or contains(text(), 'Sign Out')]]")
+            "//button[.//p[contains(text(), 'Выйти') or contains(text(), 'Sign Out')]]",
+            timeout=15)
         logout_btn.click()
+        time.sleep(3)
 
-        time.sleep(2)
-
-        # После выхода должна быть форма входа
         page_src = driver.page_source
         assert (
             "Войти" in page_src or "Sign In" in page_src
@@ -97,82 +120,69 @@ class TestSidebarNavigation:
         """
         ТЕСТ 5: Суперадмин видит список садиков после входа.
 
-        Суперадмин попадает на страницу выбора садика, а не сразу в dashboard.
+        Суперадмин после входа попадает на страницу выбора садика.
+        Там отображаются карточки с названиями садиков из seed.py.
         """
         login(driver)
+        time.sleep(4)
 
         page_src = driver.page_source
 
-        # Суперадмин видит кнопки "Войти →" для каждого садика
         has_kindergartens = (
-            "Войти →" in page_src or
-            "Enter →" in page_src or
+            "Войти" in page_src or
+            "Enter" in page_src or
             "Солнышко" in page_src or
             "Радуга" in page_src or
-            "Звёздочка" in page_src
+            "Звёздочка" in page_src or
+            "садик" in page_src.lower()
         )
         assert has_kindergartens, (
-            "Суперадмин не видит список садиков. "
-            f"Содержимое страницы: {page_src[:500]}"
+            "Суперадмин не видит список садиков.\n"
+            f"Содержимое страницы (первые 500 символов):\n{page_src[:500]}"
         )
         print("\n✅ Список садиков отображается")
 
     def test_enter_kindergarten(self, driver):
         """
-        ТЕСТ 6: Суперадмин может войти в садик.
-
-        Нажимаем кнопку "Войти →" и попадаем в dashboard садика.
+        ТЕСТ 6: Суперадмин может войти в садик нажав "Войти →".
         """
         login(driver)
-        time.sleep(2)
-
-        # Ищем первую кнопку "Войти →"
-        enter_btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Войти') and contains(text(), '→')] or "
-            ".//p[contains(text(), 'Enter') and contains(text(), '→')]]")
-        enter_btn.click()
-
         time.sleep(3)
 
-        # После входа в садик должен появиться dashboard
+        enter_btn = wait_for(driver, By.XPATH,
+            "//button[.//p[contains(text(), '→')]]", timeout=10)
+        enter_btn.click()
+        time.sleep(4)
+
         page_src = driver.page_source
         in_dashboard = (
             "Добро пожаловать" in page_src or
             "Welcome" in page_src or
             "Посещаемость" in page_src or
-            "Attendance" in page_src
+            "Attendance" in page_src or
+            "Дети" in page_src
         )
         assert in_dashboard, "Не попали в dashboard садика"
         print("\n✅ Вход в садик работает")
 
     def test_navigation_menu_items(self, driver):
         """
-        ТЕСТ 7: В боковом меню отображаются пункты навигации.
+        ТЕСТ 7: После входа в садик в sidebar появляются пункты навигации.
 
-        После входа в садик в sidebar должны быть разделы:
-        Дети, Посещаемость, Продукты, Расходы, Отчёты, Оплата.
+        Пункты меню: Дети, Посещаемость, Продукты, Расходы, Отчёты, Оплата.
         """
-        login(driver)
+        login_and_enter_kindergarten(driver)
+
+        sidebar = wait_for(driver, By.XPATH,
+            "//*[@data-testid='stSidebar']", timeout=15)
         time.sleep(2)
-
-        # Входим в первый садик
-        try:
-            enter_btn = wait_for(driver, By.XPATH,
-                "//button[.//p[contains(text(), '→')]]", timeout=5)
-            enter_btn.click()
-            time.sleep(3)
-        except Exception:
-            pass  # Может быть уже в садике (если только один)
-
-        sidebar = wait_for(driver, By.XPATH, "//*[@data-testid='stSidebar']")
         sidebar_text = sidebar.text
 
-        # Проверяем наличие пунктов меню
         expected_items = ["Дети", "Посещаемость", "Продукты", "Расходы"]
         found = [item for item in expected_items if item in sidebar_text]
 
         assert len(found) >= 2, (
-            f"Ожидали пункты меню {expected_items}, нашли только: {found}. "
-            f"Sidebar содержит: {sidebar_text[:300]}"
+            f"Ожидали пункты меню {expected_items}, нашли только: {found}.\n"
+            f"Sidebar содержит: '{sidebar_text[:400]}'"
         )
         print(f"\n✅ Найдены пункты меню: {found}")

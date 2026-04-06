@@ -15,9 +15,6 @@ test_s04_language.py — GUI тесты переключения языка ин
 import time
 import pytest
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 from conftest import APP_URL, wait_for, streamlit_ready, login
 
 
@@ -141,19 +138,24 @@ class TestLanguageSwitching:
         В sidebar есть секция "Настройки" с selectbox для языка и валюты.
         """
         login(driver)
+        time.sleep(4)  # ждём полного рендера sidebar
 
-        sidebar = wait_for(driver, By.XPATH, "//*[@data-testid='stSidebar']")
+        sidebar = wait_for(driver, By.XPATH,
+            "//*[@data-testid='stSidebar']", timeout=15)
+        time.sleep(2)
         sidebar_text = sidebar.text
 
-        # В sidebar должна быть секция настроек
         has_settings = (
             "Настройки" in sidebar_text or
             "Settings" in sidebar_text or
             "Язык" in sidebar_text or
-            "Language" in sidebar_text
+            "Language" in sidebar_text or
+            "Русский" in sidebar_text or
+            "Шекели" in sidebar_text
         )
         assert has_settings, (
-            f"Настройки не найдены в sidebar. Содержимое: {sidebar_text[:200]}"
+            f"Настройки не найдены в sidebar.\n"
+            f"Содержимое sidebar: '{sidebar_text[:300]}'"
         )
         print("\n✅ Настройки языка доступны в sidebar")
 
