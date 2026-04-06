@@ -202,9 +202,10 @@ def login(driver, email=TEST_EMAIL, password=TEST_PASSWORD):
     password_input.clear()
     password_input.send_keys(password)
 
-    # Нажимаем кнопку входа
+    # Нажимаем кнопку входа — используем data-testid формы, а не текст
+    # (чтобы не кликнуть по Tab "🔑 Войти" вместо Submit "Войти")
     login_btn = wait_clickable(driver, By.XPATH,
-        "//button[.//p[contains(text(), 'Войти') or contains(text(), 'Sign In')]]")
+        "//button[@data-testid='stBaseButton-primaryFormSubmit']")
     login_btn.click()
 
     # Ждём загрузки следующей страницы — Streamlit делает полный rerender

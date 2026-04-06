@@ -82,7 +82,7 @@ class TestLoginPage:
         streamlit_ready(driver)
 
         btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Войти') or contains(text(), 'Sign In')]]")
+            "//button[@data-testid='stBaseButton-primaryFormSubmit']")
 
         assert btn.is_displayed(), "Кнопка входа не отображается"
         print(f"\n✅ Кнопка входа найдена: '{btn.text}'")
@@ -115,7 +115,7 @@ class TestLoginPage:
 
         # Кликаем Войти
         login_btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Войти') or contains(text(), 'Sign In')]]")
+            "//button[@data-testid='stBaseButton-primaryFormSubmit']")
         login_btn.click()
 
         # Ждём загрузки — должны увидеть страницу управления садиками
@@ -157,7 +157,7 @@ class TestLoginPage:
         pass_field.send_keys("НЕПРАВИЛЬНЫЙ_ПАРОЛЬ_999")
 
         login_btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Войти') or contains(text(), 'Sign In')]]")
+            "//button[@data-testid='stBaseButton-primaryFormSubmit']")
         login_btn.click()
 
         time.sleep(2)
@@ -187,7 +187,7 @@ class TestLoginPage:
 
         # Кликаем сразу, без ввода данных
         login_btn = wait_for(driver, By.XPATH,
-            "//button[.//p[contains(text(), 'Войти') or contains(text(), 'Sign In')]]")
+            "//button[@data-testid='stBaseButton-primaryFormSubmit']")
         login_btn.click()
 
         time.sleep(2)
