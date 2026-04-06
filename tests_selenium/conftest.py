@@ -33,8 +33,8 @@ APP_URL = "http://localhost:8501"
 STREAMLIT_STARTUP_TIMEOUT = 15  # секунд ожидания запуска
 
 # ── Тестовый суперадмин (создаётся автоматически через seed) ──────────────────
-TEST_EMAIL = "koroligorn@gmail.com"
-TEST_PASSWORD = "7654321.com"
+TEST_EMAIL = "admin@kms.com"
+TEST_PASSWORD = "admin123"
 
 
 # ═══════════════════════════════════════════════════════════════════════
